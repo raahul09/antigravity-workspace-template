@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Optional
 from pydantic import Field
@@ -37,8 +38,12 @@ class Settings(BaseSettings):
     AGENT_NAME: str = "AntigravityAgent"
     DEBUG_MODE: bool = False
     PROJECT_ROOT: str = Field(
-        default_factory=lambda: str(Path(__file__).resolve().parent.parent),
-        description="Absolute path to the project root directory.",
+        default_factory=lambda: os.environ.get(
+            "WORKSPACE_PATH", str(Path.cwd())
+        ),
+        description="Absolute path to the user workspace. "
+        "Set via --workspace CLI arg or WORKSPACE_PATH env var. "
+        "Defaults to current working directory.",
     )
 
     # External LLM (OpenAI-compatible) Configuration
@@ -76,7 +81,11 @@ class Settings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parent.parent / ".env"),
+        env_file=str(
+            Path(
+                os.environ.get("WORKSPACE_PATH", str(Path.cwd()))
+            ) / ".env"
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )

@@ -31,9 +31,29 @@ Language: **English** | [中文](README_CN.md) | [Español](README_ES.md)
 
 <br/>
 
-> **Clone → Rename → Prompt. That's the workflow.**
+<div align="center">
+
+### Stop letting Cursor / Windsurf hallucinate in empty folders.
+### The **Artifact-First** cognitive architecture for AI IDEs.
+
+<br/>
+
+<img src="docs/assets/before_after.png" alt="Before vs After Antigravity" width="800"/>
+
+<br/>
+
+```bash
+pip install git+https://github.com/study8677/antigravity-workspace-template.git#subdirectory=cli
+ag init my-project
+```
+
+</div>
+
+<br/>
+
+> **`ag init` → Open IDE → Prompt. That's the workflow.**
 >
-> In a world full of AI IDEs, I want enterprise-grade architecture to be as simple as three commands. This template pre-embeds a complete **cognitive architecture** in the repo—when you open it, your IDE stops being an editor and becomes an **industry-savvy architect**.
+> **First Principles**: An AI Agent's capability ceiling = the quality of context it can read. Instead of relying on IDE plugins or platform lock-in, go back to basics—**architecture is files**. A carefully designed set of `.cursorrules`, `CONTEXT.md`, `.antigravity/rules.md` *is* the entire cognitive architecture. `ag init` injects this into any empty directory, instantly turning your IDE from an editor into an **industry-savvy architect**—no plugins, no vendor lock-in.
 
 ---
 
@@ -50,7 +70,7 @@ This template is **not** tied to any specific IDE. It works everywhere:
 | **Gemini CLI** | Reads `AGENTS.md` + `.context/` for knowledge injection |
 | **Codex (OpenAI)** | Reads `AGENTS.md` + directory conventions |
 | **Cline / Aider** | Leverages `CONTEXT.md` + directory conventions |
-| **Any OpenAI-compatible agent** | Auto-discovered tools in `src/tools/`, standard Python entry |
+| **Any OpenAI-compatible agent** | Auto-discovered tools in `engine/src/tools/`, standard Python entry |
 
 The secret: architecture is encoded in **files**, not in IDE-specific plugins. Any agent that reads project files can benefit.
 
@@ -58,55 +78,35 @@ The secret: architecture is encoded in **files**, not in IDE-specific plugins. A
 
 ## ⚡ Quick Start
 
-### Automated Installation (Recommended)
-
-**Linux / macOS:**
-```bash
-# 1. Clone the template
-git clone https://github.com/study8677/antigravity-workspace-template.git my-project
-cd my-project
-
-# 2. Run the installer
-chmod +x install.sh
-./install.sh
-
-# 3. Configure your API keys
-nano .env
-
-# 4. Run the agent
-source venv/bin/activate
-python src/agent.py
-```
-
-**Windows:**
-```cmd
-# 1. Clone the template
-git clone https://github.com/study8677/antigravity-workspace-template.git my-project
-cd my-project
-
-# 2. Run the installer
-install.bat
-
-# 3. Configure your API keys (notepad .env)
-
-# 4. Run the agent
-python src/agent.py
-```
-
-<details>
-<summary><b>📋 Manual Installation</b></summary>
+### Option 1: Inject architecture into any project (Recommended)
 
 ```bash
-git clone https://github.com/study8677/antigravity-workspace-template.git my-project
-cd my-project
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# 1. Install the CLI
+pip install git+https://github.com/study8677/antigravity-workspace-template.git#subdirectory=cli
+
+# 2. Inject cognitive architecture into your project
+ag init my-project
+
+# 3. Open in any AI IDE and start prompting!
+```
+
+### Option 2: Run the full Agent Engine
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/study8677/antigravity-workspace-template.git
+cd antigravity-workspace-template
+
+# 2. Install engine dependencies
+cd engine
 pip install -r requirements.txt
-cp .env.example .env      # (if available) or create .env manually
-nano .env
-python src/agent.py
+
+# 3. Configure API keys
+cp .env.example .env && nano .env
+
+# 4. Run the agent on any workspace
+python agent.py --workspace /path/to/your/project "Your task here"
 ```
-</details>
 
 **That's it!** The IDE auto-loads configuration and you're ready to prompt.
 
@@ -120,8 +120,8 @@ This is **not** another LangChain wrapper. It's a minimal, transparent workspace
 |:--------|:------------|
 | 🧠 **Infinite Memory** | Recursive summarization compresses context automatically |
 | 🧠 **True Thinking** | "Deep Think" step using Chain-of-Thought before acting |
-| 🎓 **Skills System** | Modular capabilities in `src/skills/` with auto-loading |
-| 🛠️ **Universal Tools** | Drop Python functions in `src/tools/` → auto-discovered |
+| 🎓 **Skills System** | Modular capabilities in `engine/src/skills/` with auto-loading |
+| 🛠️ **Universal Tools** | Drop Python functions in `engine/src/tools/` → auto-discovered |
 | 📚 **Auto Context** | Add files to `.context/` → auto-injected into prompts |
 | 🔌 **MCP Support** | Connect GitHub, databases, filesystems, custom servers |
 | 🤖 **Swarm Agents** | Multi-agent orchestration with Router-Worker pattern |
@@ -135,19 +135,35 @@ This is **not** another LangChain wrapper. It's a minimal, transparent workspace
 ## 🏗️ Project Structure
 
 ```
-src/
-├── agent.py           # Main agent loop
-├── memory.py          # JSON memory manager
-├── mcp_client.py      # MCP integration
-├── swarm.py           # Multi-agent orchestration
-├── agents/            # Specialist agents
-├── tools/             # Your custom tools (auto-discovered)
-└── skills/            # Modular skills (auto-loaded)
-
-.context/             # Knowledge base (auto-injected)
-.antigravity/         # Antigravity rules
-.cursorrules          # Cursor rules
-artifacts/            # Outputs & evidence
+antigravity-workspace-template/
+│
+├── cli/                          # 🖥️ Lightweight CLI (ag init)
+│   ├── pyproject.toml            #    Package config & entry point
+│   └── src/ag_cli/
+│       ├── cli.py                #    CLI commands (init, start-engine, version)
+│       └── templates/            #    Cognitive architecture templates
+│           ├── .cursorrules      #    → Injected into target project
+│           ├── .antigravity/     #    → Injected into target project
+│           └── CONTEXT.md        #    → Injected into target project
+│
+├── engine/                       # ⚙️ Python Agent Engine
+│   ├── agent.py                  #    Entry point (--workspace support)
+│   ├── src/
+│   │   ├── agent.py              #    Main agent loop (Think-Act-Reflect)
+│   │   ├── config.py             #    Settings (workspace-aware)
+│   │   ├── memory.py             #    Markdown memory manager
+│   │   ├── mcp_client.py         #    MCP integration
+│   │   ├── swarm.py              #    Multi-agent orchestration
+│   │   ├── tools/                #    Custom tools (auto-discovered)
+│   │   ├── agents/               #    Specialist agents
+│   │   ├── sandbox/              #    Code execution sandbox
+│   │   └── skills/               #    Modular skills (auto-loaded)
+│   ├── tests/                    #    Test suite
+│   └── requirements.txt          #    Engine dependencies
+│
+├── docs/                         # 📚 Documentation
+├── README.md                     # This file
+└── LICENSE                       # MIT
 ```
 
 ---
@@ -155,40 +171,13 @@ artifacts/            # Outputs & evidence
 ## 💡 Build a Tool in 30 Seconds
 
 ```python
-# src/tools/my_tool.py
+# engine/src/tools/my_tool.py
 def analyze_sentiment(text: str) -> str:
     """Analyzes the sentiment of given text."""
     return "positive" if len(text) > 10 else "neutral"
 ```
 
 **Restart the agent.** Done! The tool is now available to any AI IDE.
-
----
-
-## 🎓 Initialize a New Repo with Skill
-
-The built-in `agent-repo-init` skill supports two modes:
-- `quick`: minimal clean scaffold
-- `full`: scaffold + runtime profile defaults (`.env`, mission, context profile, init report)
-
-```bash
-python skills/agent-repo-init/scripts/init_project.py \
-  --project-name my-new-agent \
-  --destination-root /absolute/path/for/new/projects \
-  --mode quick
-```
-
-<details>
-<summary><b>Full mode example</b></summary>
-
-```bash
-python skills/agent-repo-init/scripts/init_project.py \
-  --project-name my-new-agent \
-  --destination-root /absolute/path/for/new/projects \
-  --mode full --llm-provider openai --enable-mcp --disable-swarm \
-  --sandbox-runtime microsandbox --init-git
-```
-</details>
 
 ---
 
@@ -217,7 +206,7 @@ Connect to external tools seamlessly:
 Decompose complex tasks automatically:
 
 ```python
-from src.swarm import SwarmOrchestrator
+from engine.src.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 result = swarm.execute("Build and review a calculator")
@@ -261,9 +250,9 @@ The swarm automatically routes to Coder, Reviewer, and Researcher agents, synthe
 
 ## ✅ Progress
 
-- ✅ Phase 1-7: Foundation, DevOps, Memory, Tools, Swarm, Discovery
-- ✅ Phase 8: MCP Integration (fully implemented)
-- 🚀 Phase 9: Enterprise Core (in progress)
+- ✅ Phase 1-8: Foundation, Memory, Tools, Swarm, MCP
+- ✅ Phase 9: V1.0 Monorepo Refactor — decoupled CLI + Engine architecture
+- 🚀 Phase 10: Enterprise Core (coming soon)
 
 See [Roadmap](docs/en/ROADMAP.md) for details.
 
@@ -275,8 +264,38 @@ Ideas are contributions too! Open an [issue](https://github.com/study8677/antigr
 
 ## 👥 Contributors
 
-- [@devalexanderdaza](https://github.com/devalexanderdaza) — First contributor. Implemented demo tools, enhanced agent functionality, proposed the "Agent OS" roadmap, and completed MCP integration.
-- [@Subham-KRLX](https://github.com/Subham-KRLX) — Added dynamic tools and context loading (Fixes #4) and the multi-agent cluster protocol (Fixes #6).
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="https://github.com/devalexanderdaza">
+        <img src="https://github.com/devalexanderdaza.png" width="80" /><br/>
+        <b>Alexander Daza</b>
+      </a><br/>
+      <sub>Sandbox MVP · OpenSpec workflows · Technical analysis docs · PHILOSOPHY</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/chenyi">
+        <img src="https://github.com/chenyi.png" width="80" /><br/>
+        <b>Chen Yi</b>
+      </a><br/>
+      <sub>First CLI prototype · 753-line refactor · DummyClient extraction · Quick-start docs</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/Subham-KRLX">
+        <img src="https://github.com/Subham-KRLX.png" width="80" /><br/>
+        <b>Subham Sangwan</b>
+      </a><br/>
+      <sub>Dynamic tool & context loading (#4) · Multi-agent swarm protocol (#3)</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/shuofengzhang">
+        <img src="https://github.com/shuofengzhang.png" width="80" /><br/>
+        <b>shuofengzhang</b>
+      </a><br/>
+      <sub>Memory context window fix</sub>
+    </td>
+  </tr>
+</table>
 
 ## ⭐ Star History
 

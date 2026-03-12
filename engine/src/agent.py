@@ -226,9 +226,8 @@ class GeminiAgent:
         """
         context_parts = []
 
-        # Get the .context directory path relative to project root
-        # Navigate up from src/ to project root
-        context_dir = Path(__file__).parent.parent / ".context"
+        # Resolve .context/ relative to the user workspace, not the engine
+        context_dir = self.settings.project_root_path / ".context"
 
         if not context_dir.exists():
             return ""
@@ -533,11 +532,27 @@ class GeminiAgent:
 
 
 if __name__ == "__main__":
-    # Anchor relative file writes (plans, logs, memory) to the project workspace.
-    os.chdir(PROJECT_ROOT)
+    import argparse
 
-    # Allow overriding the task via CLI args or AGENT_TASK env var
-    task = " ".join(sys.argv[1:]).strip() or os.environ.get(
+    parser = argparse.ArgumentParser(description="Antigravity Agent Engine")
+    parser.add_argument(
+        "--workspace",
+        type=str,
+        default=None,
+        help="Path to the user workspace directory.",
+    )
+    parser.add_argument("task", nargs="*", help="Task to execute.")
+    args = parser.parse_args()
+
+    # Set WORKSPACE_PATH *before* Settings is instantiated
+    if args.workspace:
+        os.environ["WORKSPACE_PATH"] = str(Path(args.workspace).resolve())
+
+    # Re-import settings so it picks up the new env var
+    from src.config import Settings
+    settings_instance = Settings()
+
+    task = " ".join(args.task).strip() or os.environ.get(
         "AGENT_TASK", "帮助我查看今天的天气"
     )
 
