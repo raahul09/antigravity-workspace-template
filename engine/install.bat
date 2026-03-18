@@ -68,7 +68,7 @@ if errorlevel 1 (
 
 REM Install dependencies
 echo 📦 Installing dependencies...
-pip install -r requirements.txt --quiet
+pip install -e . --quiet
 if errorlevel 1 (
     echo ❌ Error: Failed to install dependencies.
     pause
@@ -129,7 +129,7 @@ echo.
 echo 2. The virtual environment is already activated.
 echo.
 echo 3. Run the agent:
-echo    python src/agent.py
+echo    python agent.py
 echo.
 echo 📚 Documentation: docs/en/QUICK_START.md
 echo =============================================

@@ -67,7 +67,7 @@ Researches solutions, gathers context, and provides foundational knowledge for c
 ### Run Interactive Demo
 
 ```bash
-python -m src.swarm_demo
+python -m antigravity_engine.swarm_demo
 ```
 
 This launches an interactive prompt where you can assign tasks to the swarm and watch specialists collaborate.
@@ -100,7 +100,7 @@ This launches an interactive prompt where you can assign tasks to the swarm and 
 ### Programmatic Usage
 
 ```python
-from src.swarm import SwarmOrchestrator
+from antigravity_engine.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 result = swarm.execute("Build a file compression utility with error handling")
@@ -109,7 +109,7 @@ print(result)  # final synthesized string
 
 ## 🔧 Configuration
 
-Current implementation uses a built-in worker map in `src/swarm.py`.
+Current implementation uses a built-in worker map in `antigravity_engine/swarm.py`.
 There is no external `swarm_config.json` loader yet.
 
 ### Custom Agents
@@ -117,8 +117,8 @@ There is no external `swarm_config.json` loader yet.
 Add custom specialist agents by extending `BaseAgent`:
 
 ```python
-# src/agents/custom_agent.py
-from src.agents.base_agent import BaseAgent
+# antigravity_engine/agents/custom_agent.py
+from antigravity_engine.agents.base_agent import BaseAgent
 
 class DataAnalystAgent(BaseAgent):
     """Specialist agent for data analysis tasks."""
@@ -136,7 +136,7 @@ class DataAnalystAgent(BaseAgent):
 Register in `swarm.py`:
 
 ```python
-from src.agents.custom_agent import DataAnalystAgent
+from antigravity_engine.agents.custom_agent import DataAnalystAgent
 
 agents = {
     "coder": CoderAgent(),
@@ -154,7 +154,7 @@ agents = {
 to stdout. You can also inspect in-memory message history:
 
 ```python
-from src.swarm import SwarmOrchestrator
+from antigravity_engine.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 swarm.execute("Build and review a calculator", verbose=False)
@@ -172,7 +172,7 @@ The current implementation does not automatically write swarm logs/artifacts to 
 - ⏱️ Keep subtasks concrete so router delegation is predictable
 
 ### Resource Management
-- 🚫 Disable or remove unused workers directly in `src/swarm.py`
+- 🚫 Disable or remove unused workers directly in `antigravity_engine/swarm.py`
 - 💾 Implement result caching
 - 🧹 Clean old artifacts periodically
 
@@ -181,13 +181,13 @@ The current implementation does not automatically write swarm logs/artifacts to 
 ### Agents won't connect
 ```bash
 # Check if swarm can initialize
-python -c "from src.swarm import SwarmOrchestrator; SwarmOrchestrator(); print('ok')"
+python -c "from antigravity_engine.swarm import SwarmOrchestrator; SwarmOrchestrator(); print('ok')"
 ```
 
 ### Task execution hangs
 ```bash
 # Run with verbose=False to reduce console noise and inspect message bus
-python -c "from src.swarm import SwarmOrchestrator; s=SwarmOrchestrator(); s.execute('test', verbose=False); print(s.get_message_log())"
+python -c "from antigravity_engine.swarm import SwarmOrchestrator; s=SwarmOrchestrator(); s.execute('test', verbose=False); print(s.get_message_log())"
 ```
 
 ### Low quality results
@@ -199,7 +199,7 @@ python -c "from src.swarm import SwarmOrchestrator; s=SwarmOrchestrator(); s.exe
 
 ### Example 1: Web Scraper Development
 ```python
-from src.swarm import SwarmOrchestrator
+from antigravity_engine.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 result = swarm.execute(

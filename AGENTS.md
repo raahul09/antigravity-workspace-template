@@ -38,10 +38,10 @@ rules in `.cursorrules`, `.antigravity/rules.md`, and `CONTEXT.md`.
 ## Build / Lint / Test Commands
 ### Setup
 - `python -m venv venv && source venv/bin/activate`
-- `pip install -r requirements.txt`
+- `pip install -e ".[dev]"`
 
 ### Run Agent
-- `python src/agent.py "Your task here"`
+- `ag-engine "Your task here"`
 
 ### Docker
 - `docker-compose up --build`
@@ -52,13 +52,13 @@ rules in `.cursorrules`, `.antigravity/rules.md`, and `CONTEXT.md`.
 - Run a single test file: `pytest tests/test_agent.py -v`
 - Run a single test case: `pytest tests/test_agent.py::test_agent_initialization -v`
 - Run a single test method: `pytest tests/test_agent.py::TestClass::test_method -v`
-- Coverage: `pytest --cov=src tests/`
+- Coverage: `pytest --cov=antigravity_engine tests/`
 - Sandbox tests: `pytest tests/test_local_sandbox.py tests/test_docker_sandbox.py tests/test_factory.py -v`
 
 ### Lint / Format
 - No repo-level linter/formatter configs were found.
 - Follow existing style and PEP 8; avoid reformatting unrelated code.
-- Optional sanity check for tools: `python -m py_compile src/tools/*.py`
+- Optional sanity check for tools: `python -m py_compile antigravity_engine/tools/*.py`
 
 ### CI
 - GitHub Actions runs `pytest tests/` on pushes/PRs (`.github/workflows/test.yml`).
@@ -68,18 +68,18 @@ rules in `.cursorrules`, `.antigravity/rules.md`, and `CONTEXT.md`.
 - **Docstrings are required** for functions/classes; use Google-style format.
   Include `Args:`, `Returns:`, and `Raises:` where applicable.
 - **Use Pydantic** for data models and settings (`pydantic`, `pydantic-settings`).
-- **External API calls** must be wrapped in tools under `src/tools/`.
-- **Use `<thought>` blocks** for non-trivial logic (see `src/tools/example_tool.py`).
-- **Imports**: stdlib → third-party → local (`src.`) with blank lines between.
+- **External API calls** must be wrapped in tools under `antigravity_engine/tools/`.
+- **Use `<thought>` blocks** for non-trivial logic (see `antigravity_engine/tools/example_tool.py`).
+- **Imports**: stdlib → third-party → local (`antigravity_engine.`) with blank lines between.
 - **Formatting**: 4-space indent, one statement per line, keep lines readable.
 - **Strings**: prefer f-strings for interpolation; keep quote style consistent.
 
 ## Architecture & Patterns
-- **Tool discovery**: public functions in `src/tools/*.py` are auto-loaded.
+- **Tool discovery**: public functions in `antigravity_engine/tools/*.py` are auto-loaded.
   Keep tool functions small, pure when possible, and well-documented.
 - **MCP integration**: optional via `mcp_servers.json` and `.env`.
 - **Context injection**: `.context/` markdown files are auto-loaded.
-- **Memory**: JSON-based memory via `MemoryManager` (`src/memory.py`).
+- **Memory**: JSON-based memory via `MemoryManager` (`antigravity_engine/memory.py`).
 
 ## Testing & Reliability
 - Use `pytest` fixtures and `assert` statements (see `tests/`).

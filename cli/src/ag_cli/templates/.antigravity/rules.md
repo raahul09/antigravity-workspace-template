@@ -1,73 +1,47 @@
-# 🛸 Antigravity Cognitive Architecture (v2.0)
+# Agent Rules
 
-> An AI Agent's capability ceiling = the quality of context it can read.
-> These rules ARE the architecture. No plugins, no lock-in.
+Self-contained behavioral rules for AI agents working in this project.
+These rules work standalone — no external file references needed.
 
----
+## 1. Think Before Act
+- Read the task fully before starting
+- Identify affected files and dependencies
+- Consider edge cases and failure modes
+- Plan your approach, then execute
 
-## 1. Think Before You Act
+## 2. Verify Your Work
+- Run tests after making changes
+- Check that existing functionality is not broken
+- Validate inputs and outputs at system boundaries
+- Review your own code before presenting it
 
-- **NEVER** start coding without a plan.
-- Create `artifacts/plan_[task].md` FIRST.
-- Use `<thought>...</thought>` blocks for non-trivial reasoning.
-- Consider: edge cases, failure modes, security, scalability.
-
-## 2. Verify Everything
-
-- Run tests after every logic change.
-- Save test output to `artifacts/logs/`.
-- If modifying UI, capture screenshots in `artifacts/screenshots/`.
-
-## 3. Learn From Mistakes (Self-Evolution) 🧬
-
-When a bug is found or a wrong approach is taken:
-
-1. **Document** in `artifacts/error_journal.md`:
-   ```
-   ## [DATE] [Title]
-   - What happened:
-   - Root cause:
-   - Fix applied:
-   - Lesson learned:
-   - Prevention rule:
-   ```
-2. **Extract** generalizable lessons into this file or `.context/`.
-3. **Never repeat** a documented mistake. Always scan the error journal first.
+## 3. Learn From Mistakes
+- If a test fails, understand WHY before fixing
+- Log non-obvious errors and their solutions to `.antigravity/memory/`
+- Don't repeat the same mistake — check memory first
+- If stuck after 2 attempts, ask for clarification
 
 ## 4. Coding Constraints
+- Type hints on all function signatures
+- Google-style docstrings on public functions
+- Keep functions under 50 lines where practical
+- Prefer explicit over implicit
+- No global mutable state
 
-| Constraint | Applies To |
-|:-----------|:-----------|
-| Strict type hints | All functions |
-| Google-style docstrings | All functions and classes |
-| Pydantic models | All data structures and settings |
-| Tool encapsulation | All external API calls → `tools/` |
-| No silent exceptions | Every `except` must log or re-raise |
-| Atomic commits | One logical change per commit |
+## 5. Permissions
+- Never modify files outside the project directory without asking
+- Never commit secrets, credentials, or API keys
+- Never force-push to main/master
+- Never delete data without confirmation
 
-## 5. Spec-Driven Changes
+## 6. Communication
+- Lead with the answer, not the reasoning
+- Show code changes as diffs when practical
+- Flag uncertainties explicitly
+- Ask exactly one clarifying question when blocked
 
-For non-trivial features or breaking changes:
-
-1. Write a spec/proposal FIRST (in `artifacts/` or `openspec/`)
-2. Get user approval
-3. Implement the approved spec
-4. Archive completed specs
-
-## 6. Artifact Protocol
-
-| Type | Path | When |
-|:-----|:-----|:-----|
-| Plans | `artifacts/plan_[task].md` | Before any implementation |
-| Test logs | `artifacts/logs/` | After every test run |
-| Error journal | `artifacts/error_journal.md` | After every bug or mistake |
-| Screenshots | `artifacts/screenshots/` | After any UI change |
-
-## 7. Permissions
-
-- ✅ Read any project file
-- ✅ Write to `src/`, `tests/`, `artifacts/`
-- ✅ Run `pytest`, `git` commands
-- ❌ Never `rm -rf` or destructive system commands
-- ❌ Never modify `.git/` internals
-- ❌ No form submissions or logins without explicit approval
+## 7. Project Context
+- Check `.antigravity/` for project-specific conventions and memory
+- Check `.antigravity/decisions/` for architectural decisions
+- Check `.antigravity/memory/` for past reports and findings
+- These directories contain the project's institutional knowledge

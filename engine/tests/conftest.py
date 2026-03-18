@@ -1,8 +1,7 @@
 """Pytest configuration helpers.
 
-This conftest ensures the project root is on `sys.path` so tests can import
-the `src` package regardless of how pytest is invoked in different CI or IDE
-environments.
+This conftest ensures the engine root is on `sys.path` so tests can import
+the `antigravity_engine` package regardless of how pytest is invoked.
 """
 import os
 import sys

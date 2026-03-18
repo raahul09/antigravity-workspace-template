@@ -320,9 +320,9 @@ def main() -> int:
         f"cd {target_path}",
         "python3 -m venv venv",
         "source venv/bin/activate",
-        "pip install -r requirements.txt",
+        "pip install -e .",
         "cp .env.example .env  # if .env not already created",
-        "python src/agent.py",
+        "ag-engine",
     ]
     if args.mode == "full":
         next_steps.append("review .context/agent_runtime_profile.md")

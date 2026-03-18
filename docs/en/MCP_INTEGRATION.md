@@ -44,7 +44,7 @@ MCP_ENABLED=true
 
 ### 3. Run the Agent
 ```bash
-python src/agent.py
+ag-engine
 ```
 
 The agent will:
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
 ### Register Custom Server
 
-1. Save your server to `src/tools/my_server.py`
+1. Save your server to `antigravity_engine/tools/my_server.py`
 2. Add to `mcp_servers.json`:
 
 ```json
@@ -136,7 +136,7 @@ if __name__ == "__main__":
   "name": "my-analysis",
   "transport": "stdio",
   "command": "python",
-  "args": ["src/tools/my_server.py"],
+  "args": ["antigravity_engine/tools/my_server.py"],
   "enabled": true
 }
 ```
@@ -170,7 +170,7 @@ For untrusted servers, consider:
 ## 🧪 Testing MCP Integration
 
 ```python
-from src.mcp_client import MCPClientManagerSync
+from antigravity_engine.mcp_client import MCPClientManagerSync
 
 manager = MCPClientManagerSync(config_path="mcp_servers.json")
 manager.initialize()
@@ -188,7 +188,7 @@ manager.shutdown()
 ### Server won't connect
 ```bash
 # Check if server process starts
-python src/tools/my_server.py
+python antigravity_engine/tools/my_server.py
 
 # Verify command exists
 which npx
@@ -197,7 +197,7 @@ which npx
 ### Tools not appearing
 ```bash
 # Restart agent
-python src/agent.py
+ag-engine
 
 # Verify server command exists
 which npx

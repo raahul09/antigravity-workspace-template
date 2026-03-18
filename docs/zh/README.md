@@ -22,7 +22,7 @@
 递归摘要自动压缩历史上下文，缓解上下文窗口限制。
 
 ### 🛠️ 通用工具协议
-遵循通用 ReAct 模式；在 `src/tools/` 放入 Python 函数即被自动注册为工具。
+遵循通用 ReAct 模式；在 `antigravity_engine/tools/` 放入 Python 函数即被自动注册为工具。
 
 ### 🎓 基于 Skill 的项目初始化
 使用内置 `agent-repo-init` skill 可以从当前模板快速初始化干净的新仓库。
@@ -45,6 +45,7 @@
 | 启用多 Agent | [多 Agent Swarm](SWARM_PROTOCOL.md) |
 | 理解架构 | [项目理念](PHILOSOPHY.md) |
 | 查看规划 | [开发路线图](ROADMAP.md) |
+| 查询项目上下文 | `ag ask "问题"` / `ag refresh` |
 
 ## 📊 项目结构
 
@@ -53,18 +54,19 @@
 ├── .antigravity/        # 🛸 Antigravity 配置/规则
 ├── .context/            # 📚 自动注入的知识库
 ├── artifacts/           # 📂 Agent 输出（计划、日志、证据）
-├── src/                 # 🧠 Agent 源码
+├── antigravity_engine/  # 🧠 Agent 源码
 │   ├── agent.py         # 主循环
 │   ├── memory.py        # JSON 记忆管理
 │   ├── mcp_client.py    # MCP 集成
 │   ├── swarm.py         # 多 Agent 编排
 │   ├── agents/          # 专家型 Agent
-│   └── tools/           # 工具实现
+│   ├── tools/           # 工具实现
+│   └── hub/             # 知识中枢（扫描器、Agent、管道）
 ├── tests/               # ✅ 测试套件
 ├── scripts/             # 🧪 辅助脚本
 ├── docker-compose.yml   # 本地开发栈
 ├── README.md            # 项目主页
-└── requirements.txt     # Python 依赖
+└── pyproject.toml       # Python 依赖
 ```
 
 ## 🎓 按角色阅读
@@ -103,7 +105,7 @@
 A: 可以，设置 `.env` 中的 `OPENAI_BASE_URL` 与 `OPENAI_API_KEY`，详见 [快速开始](QUICK_START.md)。
 
 **Q: 如何添加自定义工具？**  
-A: 将 Python 文件放进 `src/tools/`，无需额外注册，见 [零配置特性](ZERO_CONFIG.md)。
+A: 将 Python 文件放进 `antigravity_engine/tools/`，无需额外注册，见 [零配置特性](ZERO_CONFIG.md)。
 
 **Q: 如何基于模板初始化一个新项目？**  
 A: 使用 `agent-repo-init` 的 `quick/full` 模式，或直接运行 `skills/agent-repo-init/scripts/init_project.py`，见 [零配置特性](ZERO_CONFIG.md)。
@@ -114,8 +116,11 @@ A: 使用 Docker，参考 [快速开始](QUICK_START.md) Docker 部分。
 **Q: 是否支持多 Agent？**  
 A: 支持，使用 Swarm 系统，见 [多 Agent Swarm](SWARM_PROTOCOL.md)。
 
-**Q: 如何添加知识/上下文？**  
+**Q: 如何添加知识/上下文？**
 A: 在 `.context/` 创建文件会被自动加载，详见 [零配置特性](ZERO_CONFIG.md)。
+
+**Q: 什么是知识中枢？**
+A: 知识中枢 (`ag ask`、`ag refresh`、`ag report`、`ag log-decision`) 在 `.antigravity/` 中维护项目上下文，让所有 AI IDE 更智能。详见主 [README](../../README.md)。
 
 ## 🤝 贡献
 
@@ -141,7 +146,7 @@ MIT License，详见仓库根目录 `LICENSE`。
 
 ---
 
-**最后更新：2025 年 12 月**  
-**当前版本：Phase 8（MCP 集成）✅**
+**最后更新：2026 年 3 月**
+**当前版本：Phase 10（知识中枢）✅**
 
 祝构建愉快！🚀

@@ -8,12 +8,15 @@ project directory, making any AI IDE an industry-savvy architect.
 from __future__ import annotations
 
 import shutil
+import sys
 import time
 from importlib import resources as importlib_resources
 from pathlib import Path
 
 import typer
 from rich.console import Console
+
+from ag_cli.reader import append_to_memory, append_decision
 from rich.panel import Panel
 from rich.text import Text
 from rich.tree import Tree
@@ -60,9 +63,49 @@ def _copy_tree(src: Path, dst: Path) -> list[str]:
             target.mkdir(parents=True, exist_ok=True)
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(item, target)
+            if not target.exists():
+                shutil.copy2(item, target)
             created.append(str(relative))
     return created
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]  # cli/src/ag_cli/cli.py → repo root
+
+
+def _run_hub(workspace: Path, *args: str) -> int:
+    """Console script first, then python -m fallback."""
+    import subprocess
+
+    ag_hub = shutil.which("ag-hub")
+    if ag_hub:
+        cmd = [ag_hub] + list(args) + ["--workspace", str(workspace)]
+        return subprocess.run(cmd, check=False).returncode
+
+    engine_dir = _REPO_ROOT / "engine"
+    if (engine_dir / "antigravity_engine" / "hub" / "__main__.py").exists():
+        cmd = [sys.executable, "-m", "antigravity_engine.hub"] + list(args) + ["--workspace", str(workspace)]
+        return subprocess.run(cmd, cwd=str(engine_dir), check=False).returncode
+
+    console.print("[red]Engine not installed. Install: pip install git+...#subdirectory=engine[/red]")
+    return 1
+
+
+def _run_engine(workspace: Path, *args: str) -> int:
+    """Console script first, then python -m fallback."""
+    import subprocess
+
+    ag_engine = shutil.which("ag-engine")
+    if ag_engine:
+        cmd = [ag_engine] + list(args) + ["--workspace", str(workspace)]
+        return subprocess.run(cmd, check=False).returncode
+
+    engine_dir = _REPO_ROOT / "engine"
+    if (engine_dir / "antigravity_engine" / "__main__.py").exists():
+        cmd = [sys.executable, "-m", "antigravity_engine"] + list(args) + ["--workspace", str(workspace)]
+        return subprocess.run(cmd, cwd=str(engine_dir), check=False).returncode
+
+    console.print("[red]Engine not installed.[/red]")
+    return 1
 
 
 # ── Commands ────────────────────────────────────────────────────────
@@ -172,9 +215,6 @@ def start_engine_cmd(
     ),
 ) -> None:
     """Launch the Antigravity Agent Engine targeting a workspace."""
-    import subprocess
-    import sys
-
     workspace_path = Path(workspace).resolve()
 
     if not workspace_path.exists():
@@ -188,29 +228,63 @@ def start_engine_cmd(
         f"[bold]{workspace_path}[/bold]"
     )
 
-    # Locate the engine entry point relative to this package.
-    # In a monorepo install, engine/ is a sibling of cli/.
-    engine_agent = Path(__file__).resolve().parent.parent.parent.parent.parent / "engine" / "agent.py"
-
-    if not engine_agent.exists():
-        console.print(
-            f"[bold red]✗[/bold red] Engine not found at {engine_agent}\n"
-            "[dim]Make sure the engine/ directory is present in the monorepo.[/dim]"
-        )
-        raise typer.Exit(code=1)
-
-    cmd = [sys.executable, str(engine_agent), "--workspace", str(workspace_path)]
+    args: list[str] = []
     if task:
-        cmd.append(task)
+        args.append(task)
 
-    console.print(f"[dim]Running: {' '.join(cmd)}[/dim]\n")
+    code = _run_engine(workspace_path, *args)
+    raise typer.Exit(code=code)
 
-    try:
-        result = subprocess.run(cmd, check=False)
-        raise typer.Exit(code=result.returncode)
-    except KeyboardInterrupt:
-        console.print("\n[yellow]Engine stopped.[/yellow]")
-        raise typer.Exit(code=0)
+
+# ── Hub Commands ─────────────────────────────────────────────────────
+
+
+@app.command("ask")
+def ask_cmd(
+    question: str = typer.Argument(..., help="Question about the project."),
+    workspace: str = typer.Option(".", "--workspace", "-w", help="Project directory."),
+) -> None:
+    """Ask a question about the project (requires LLM)."""
+    workspace_path = Path(workspace).resolve()
+    code = _run_hub(workspace_path, "ask", question)
+    raise typer.Exit(code=code)
+
+
+@app.command("refresh")
+def refresh_cmd(
+    workspace: str = typer.Option(".", "--workspace", "-w", help="Project directory."),
+    quick: bool = typer.Option(False, "--quick", help="Only scan changed files."),
+) -> None:
+    """Refresh project context in .antigravity/ (requires LLM)."""
+    workspace_path = Path(workspace).resolve()
+    args: list[str] = ["refresh"]
+    if quick:
+        args.append("--quick")
+    code = _run_hub(workspace_path, *args)
+    raise typer.Exit(code=code)
+
+
+@app.command("report")
+def report_cmd(
+    message: str = typer.Argument(..., help="Report message to log."),
+    workspace: str = typer.Option(".", "--workspace", "-w", help="Project directory."),
+) -> None:
+    """Log a report to .antigravity/memory/reports.md (no LLM needed)."""
+    workspace_path = Path(workspace).resolve()
+    target = append_to_memory(workspace_path, "reports.md", message)
+    console.print(f"[green]Logged report to {target.relative_to(workspace_path)}[/green]")
+
+
+@app.command("log-decision")
+def log_decision_cmd(
+    decision: str = typer.Argument(..., help="The decision made."),
+    rationale: str = typer.Argument(..., help="Why this decision was made."),
+    workspace: str = typer.Option(".", "--workspace", "-w", help="Project directory."),
+) -> None:
+    """Log an architectural decision to .antigravity/decisions/log.md (no LLM needed)."""
+    workspace_path = Path(workspace).resolve()
+    target = append_decision(workspace_path, decision, rationale)
+    console.print(f"[green]Logged decision to {target.relative_to(workspace_path)}[/green]")
 
 
 if __name__ == "__main__":

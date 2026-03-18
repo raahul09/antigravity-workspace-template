@@ -37,7 +37,7 @@ MCP_ENABLED=true
 
 ### 3. Ejecutar el Agente
 ```bash
-python src/agent.py
+ag-engine
 ```
 
 El agente:
@@ -131,7 +131,7 @@ Regístralo en `mcp_servers.json`:
 ## 🧪 Prueba Rápida de Integración
 
 ```python
-from src.mcp_client import MCPClientManagerSync
+from antigravity_engine.mcp_client import MCPClientManagerSync
 
 manager = MCPClientManagerSync(config_path="mcp_servers.json")
 manager.initialize()

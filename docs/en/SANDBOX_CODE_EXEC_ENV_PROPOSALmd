@@ -60,7 +60,7 @@ Docker, E2B) is chosen via configuration.
 
 Today this repository:
 
-- Discovers tools locally from `src/tools/*.py` (dynamic loading).
+- Discovers tools locally from `antigravity_engine/tools/*.py` (dynamic loading).
 - Can integrate MCP as external tools.
 - Does not include a formal "sandbox": running potentially untrusted code is
   an open gap (Issue #9).
@@ -180,7 +180,7 @@ sequenceDiagram
 Add a dedicated module to isolate execution logic:
 
 ```text
-src/
+antigravity_engine/
 ├── sandbox/              # NEW MODULE
 │   ├── __init__.py
 │   ├── base.py           # Protocol definition (Interface)
@@ -335,8 +335,8 @@ the same interface.
 The Agent does not need to know which sandbox is used. It only needs a
 "Tool" that acts as a bridge.
 
-This repo exposes tools to the agent via `src/tools/*.py` (dynamic loading).
-Therefore, the ideal integration is a simple tool, e.g. `src/tools/execution_tool.py`, that:
+This repo exposes tools to the agent via `antigravity_engine/tools/*.py` (dynamic loading).
+Therefore, the ideal integration is a simple tool, e.g. `antigravity_engine/tools/execution_tool.py`, that:
 
 1) Accepts code + language
 2) Uses `get_sandbox()`
@@ -345,13 +345,13 @@ Therefore, the ideal integration is a simple tool, e.g. `src/tools/execution_too
 Example:
 
 ```python
-from src.sandbox.factory import get_sandbox
+from antigravity_engine.sandbox.factory import get_sandbox
 
 
 def run_python_code(code: str, timeout: int = 30) -> str:
     """Execute Python code using the configured sandbox.
 
-    Note: In this repo, tools are public functions in `src/tools/*.py`.
+    Note: In this repo, tools are public functions in `antigravity_engine/tools/*.py`.
     The agent runs at most one tool per iteration, so output should be
     compact (e.g. truncated) and self-contained.
     """
@@ -364,7 +364,7 @@ def run_python_code(code: str, timeout: int = 30) -> str:
     return result.stdout
 ```
 
-**Alignment with `src/agent.py`:**
+**Alignment with `antigravity_engine/agent.py`:**
 
 - The agent currently runs **at most one tool** per iteration and then does a
   follow-up.
@@ -424,10 +424,10 @@ Minimum proposal:
 
 **Phase 1 (MVP, Zero-Config):**
 
-- [ ] Create `src/sandbox/` and base contracts.
+- [ ] Create `antigravity_engine/sandbox/` and base contracts.
 - [ ] Implement `LocalSandbox` with subprocess + timeout + output truncation.
 - [ ] Implement `SandboxFactory` reading `SANDBOX_TYPE`.
-- [ ] Expose tool `src/tools/execution_tool.py` (e.g. `run_python_code`).
+- [ ] Expose tool `antigravity_engine/tools/execution_tool.py` (e.g. `run_python_code`).
 - [ ] Add minimal tests for: timeout, exit_code != 0, output truncation.
 
 **Phase 2 (opt-in Docker):**

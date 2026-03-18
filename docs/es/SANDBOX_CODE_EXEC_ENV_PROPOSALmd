@@ -53,7 +53,7 @@ Esta propuesta sugiere rechazar la dicotomía "Docker sí/no" e implementar en s
 
 Este repositorio hoy:
 
-- Descubre tools localmente desde `src/tools/*.py` (carga dinámica).
+- Descubre tools localmente desde `antigravity_engine/tools/*.py` (carga dinámica).
 - Puede integrar MCP como herramientas externas.
 - No incluye un "sandbox" formal: la ejecución de código potencialmente no confiable es un vacío (Issue #9).
 
@@ -169,7 +169,7 @@ sequenceDiagram
 Se propone añadir un módulo dedicado para aislar la lógica de ejecución:
 
 ```text
-src/
+antigravity_engine/
 ├── sandbox/              # NUEVO MÓDULO
 │   ├── __init__.py
 │   ├── base.py           # Definición del Protocolo (Interfaz)
@@ -316,7 +316,7 @@ En este repo ya existe Docker para ejecutar el agente (`Dockerfile`, `docker-com
 
 El Agente no necesita saber qué sandbox está usando. Solo necesita una "Tool" que actúe como puente.
 
-Este repo expone herramientas al agente via `src/tools/*.py` (carga dinámica). Por tanto, la integración ideal es una tool simple, p.ej. `src/tools/execution_tool.py`, que:
+Este repo expone herramientas al agente via `antigravity_engine/tools/*.py` (carga dinámica). Por tanto, la integración ideal es una tool simple, p.ej. `antigravity_engine/tools/execution_tool.py`, que:
 
 1) Reciba código + lenguaje
 2) Use `get_sandbox()`
@@ -325,13 +325,13 @@ Este repo expone herramientas al agente via `src/tools/*.py` (carga dinámica). 
 Ejemplo:
 
 ```python
-from src.sandbox.factory import get_sandbox
+from antigravity_engine.sandbox.factory import get_sandbox
 
 
 def run_python_code(code: str, timeout: int = 30) -> str:
     """Ejecuta código Python usando el sandbox configurado.
 
-    Nota: en este repo, las tools son funciones públicas en `src/tools/*.py`.
+    Nota: en este repo, las tools son funciones públicas en `antigravity_engine/tools/*.py`.
     El agente ejecuta como máximo una tool por iteración, así que el output
     debe ser compacto (p.ej. truncado) y autocontenido.
     """
@@ -345,7 +345,7 @@ def run_python_code(code: str, timeout: int = 30) -> str:
 
 ```
 
-**Alineación con `src/agent.py`:**
+**Alineación con `antigravity_engine/agent.py`:**
 
 - El agente actualmente ejecuta como máximo **una tool** por iteración y luego hace un follow-up.
 - Por tanto, la tool debe devolver un output compacto y confiable (incluyendo errores bien formateados).
@@ -400,10 +400,10 @@ Propuesta mínima:
 
 **Fase 1 (MVP, Zero-Config):**
 
-- [ ] Crear `src/sandbox/` y contratos base.
+- [ ] Crear `antigravity_engine/sandbox/` y contratos base.
 - [ ] Implementar `LocalSandbox` con subprocess + timeout + truncado de output.
 - [ ] Implementar `SandboxFactory` leyendo `SANDBOX_TYPE`.
-- [ ] Exponer tool `src/tools/execution_tool.py` (p.ej. `run_python_code`).
+- [ ] Exponer tool `antigravity_engine/tools/execution_tool.py` (p.ej. `run_python_code`).
 - [ ] Añadir tests mínimos para: timeout, exit_code != 0, output truncation.
 
 **Fase 2 (opt-in Docker):**

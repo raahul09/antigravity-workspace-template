@@ -69,7 +69,7 @@ The Antigravity Workspace Template is evolving toward a comprehensive **Agent Op
 **Goal**: Zero-config tool and knowledge loading
 
 **Achievements:**
-- Automatic tool discovery from `src/tools/`
+- Automatic tool discovery from `antigravity_engine/tools/`
 - Auto-injection from `.context/` files
 - Hot reload on file changes
 - Docstring-based help generation
@@ -119,7 +119,7 @@ The final vision is a production-grade system where enterprises can:
 
 **Example Usage:**
 ```python
-from src.sandbox.factory import get_sandbox
+from antigravity_engine.sandbox.factory import get_sandbox
 
 sandbox = get_sandbox()
 result = sandbox.execute(

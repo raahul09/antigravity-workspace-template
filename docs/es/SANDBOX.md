@@ -13,7 +13,7 @@ El módulo sandbox proporciona entornos seguros y configurables para ejecutar c�
 Sin configuración adicional. El código se ejecuta en un subprocess aislado:
 
 ```bash
-python src/agent.py "Genera y ejecuta código Python para calcular 2 + 2"
+ag-engine "Genera y ejecuta código Python para calcular 2 + 2"
 ```
 
 El agente:
@@ -33,7 +33,7 @@ export DOCKER_IMAGE=antigravity-sandbox:latest
 docker build -f Dockerfile.sandbox -t antigravity-sandbox:latest .
 
 # Luego ejecuta el agente
-python src/agent.py "Tu tarea de generación de código"
+ag-engine "Tu tarea de generación de código"
 ```
 
 ## Configuración

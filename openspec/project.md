@@ -26,7 +26,7 @@ Its primary goals are to provide a minimal, transparent workspace where agents h
   - **Pydantic:** Use Pydantic models for complex data structures.
 
 ### Architecture Patterns
-- **Tool Isolation:** All external interactions (API calls, I/O) must be encapsulated as functions in `src/tools/`.
+- **Tool Isolation:** All external interactions (API calls, I/O) must be encapsulated as functions in `antigravity_engine/tools/`.
 - **Statelessness:** Tools should generally be stateless; context is passed via arguments.
 - **Swarm Orchestrator:** Uses a Router-Worker pattern to delegate complex tasks to specialist agents (Coder, Reviewer, Researcher).
 - **Event-Driven:** The architecture supports event-driven workflows.

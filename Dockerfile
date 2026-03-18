@@ -3,8 +3,8 @@ FROM python:3.12-slim as builder
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+COPY engine/ engine/
+RUN pip install --user --no-cache-dir ./engine
 
 # Runtime stage
 FROM python:3.12-slim
@@ -20,7 +20,6 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
 
 # Run the agent
-CMD ["python", "src/agent.py"]
+CMD ["ag-engine"]

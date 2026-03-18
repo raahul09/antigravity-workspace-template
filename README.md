@@ -77,7 +77,7 @@ This template is **not** tied to any specific IDE. It works everywhere:
 | **Gemini CLI** | Reads `AGENTS.md` + `.context/` for knowledge injection |
 | **Codex (OpenAI)** | Reads `AGENTS.md` + directory conventions |
 | **Cline / Aider** | Leverages `CONTEXT.md` + directory conventions |
-| **Any OpenAI-compatible agent** | Auto-discovered tools in `engine/src/tools/`, standard Python entry |
+| **Any OpenAI-compatible agent** | Auto-discovered tools in `engine/antigravity_engine/tools/`, standard Python entry |
 
 The secret: architecture is encoded in **files**, not in IDE-specific plugins. Any agent that reads project files can benefit.
 
@@ -106,13 +106,13 @@ cd antigravity-workspace-template
 
 # 2. Install engine dependencies
 cd engine
-pip install -r requirements.txt
+pip install -e .
 
 # 3. Configure API keys
 cp .env.example .env && nano .env
 
 # 4. Run the agent on any workspace
-python agent.py --workspace /path/to/your/project "Your task here"
+ag-engine --workspace /path/to/your/project "Your task here"
 ```
 
 **That's it!** The IDE auto-loads configuration and you're ready to prompt.
@@ -127,8 +127,8 @@ This is **not** another LangChain wrapper. It's a minimal, transparent workspace
 |:--------|:------------|
 | 🧠 **Infinite Memory** | Recursive summarization compresses context automatically |
 | 🧠 **True Thinking** | "Deep Think" step using Chain-of-Thought before acting |
-| 🎓 **Skills System** | Modular capabilities in `engine/src/skills/` with auto-loading |
-| 🛠️ **Universal Tools** | Drop Python functions in `engine/src/tools/` → auto-discovered |
+| 🎓 **Skills System** | Modular capabilities in `engine/antigravity_engine/skills/` with auto-loading |
+| 🛠️ **Universal Tools** | Drop Python functions in `engine/antigravity_engine/tools/` → auto-discovered |
 | 📚 **Auto Context** | Add files to `.context/` → auto-injected into prompts |
 | 🔌 **MCP Support** | Connect GitHub, databases, filesystems, custom servers |
 | 🤖 **Swarm Agents** | Multi-agent orchestration with Router-Worker pattern |
@@ -136,6 +136,7 @@ This is **not** another LangChain wrapper. It's a minimal, transparent workspace
 | 🌐 **LLM Agnostic** | Use OpenAI, Azure, Ollama, or any compatible API |
 | 📂 **Artifact-First** | Convention-first workflow for plans, logs, and evidence |
 | 🔒 **Sandbox** | Configurable code execution (local / microsandbox) |
+| 🔮 **Knowledge Hub** | `ag ask`, `ag refresh` — project context maintained by multi-agent system |
 
 ---
 
@@ -147,7 +148,7 @@ antigravity-workspace-template/
 ├── cli/                          # 🖥️ Lightweight CLI (ag init)
 │   ├── pyproject.toml            #    Package config & entry point
 │   └── src/ag_cli/
-│       ├── cli.py                #    CLI commands (init, start-engine, version)
+│       ├── cli.py                #    CLI commands (init, ask, refresh, report, log-decision)
 │       └── templates/            #    Cognitive architecture templates
 │           ├── .cursorrules      #    → Injected into target project
 │           ├── .antigravity/     #    → Injected into target project
@@ -155,7 +156,7 @@ antigravity-workspace-template/
 │
 ├── engine/                       # ⚙️ Python Agent Engine
 │   ├── agent.py                  #    Entry point (--workspace support)
-│   ├── src/
+│   ├── antigravity_engine/
 │   │   ├── agent.py              #    Main agent loop (Think-Act-Reflect)
 │   │   ├── config.py             #    Settings (workspace-aware)
 │   │   ├── memory.py             #    Markdown memory manager
@@ -164,9 +165,10 @@ antigravity-workspace-template/
 │   │   ├── tools/                #    Custom tools (auto-discovered)
 │   │   ├── agents/               #    Specialist agents
 │   │   ├── sandbox/              #    Code execution sandbox
-│   │   └── skills/               #    Modular skills (auto-loaded)
+│   │   ├── skills/               #    Modular skills (auto-loaded)
+│   │   └── hub/                  #    Knowledge Hub (scanner, agents, pipeline)
 │   ├── tests/                    #    Test suite
-│   └── requirements.txt          #    Engine dependencies
+│   └── pyproject.toml            #    Engine dependencies
 │
 ├── docs/                         # 📚 Documentation
 ├── README.md                     # This file
@@ -178,7 +180,7 @@ antigravity-workspace-template/
 ## 💡 Build a Tool in 30 Seconds
 
 ```python
-# engine/src/tools/my_tool.py
+# engine/antigravity_engine/tools/my_tool.py
 def analyze_sentiment(text: str) -> str:
     """Analyzes the sentiment of given text."""
     return "positive" if len(text) > 10 else "neutral"
@@ -213,7 +215,7 @@ Connect to external tools seamlessly:
 Decompose complex tasks automatically:
 
 ```python
-from engine.src.swarm import SwarmOrchestrator
+from antigravity_engine.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 result = swarm.execute("Build and review a calculator")
@@ -245,6 +247,29 @@ The swarm automatically routes to Coder, Reviewer, and Researcher agents, synthe
 
 ---
 
+## 🔮 Knowledge Hub
+
+The Knowledge Hub maintains project context files in `.antigravity/`, making all AI IDEs smarter.
+
+```bash
+# Initialize project context
+ag init my-project && cd my-project
+
+# Scan project and generate conventions (requires LLM)
+ag refresh
+
+# Ask questions about the project (requires LLM)
+ag ask "What framework does this project use?"
+
+# Log reports and decisions (no LLM needed)
+ag report "Found auth race condition in login handler"
+ag log-decision "Use Redis for sessions" "Team already familiar"
+```
+
+All commands work with `--workspace` to target any directory.
+
+---
+
 ## 📚 Documentation
 
 | Language | Link |
@@ -259,7 +284,8 @@ The swarm automatically routes to Coder, Reviewer, and Researcher agents, synthe
 
 - ✅ Phase 1-8: Foundation, Memory, Tools, Swarm, MCP
 - ✅ Phase 9: V1.0 Monorepo Refactor — decoupled CLI + Engine architecture
-- 🚀 Phase 10: Enterprise Core (coming soon)
+- ✅ Phase 10: Knowledge Hub — multi-agent project context system
+- 🚀 Phase 11: Automation — git hooks, file watching, migrations (coming soon)
 
 See [Roadmap](docs/en/ROADMAP.md) for details.
 

@@ -1,4 +1,4 @@
-from src.memory import MemoryManager
+from antigravity_engine.memory import MemoryManager
 
 
 def test_markdown_memory_files_written(tmp_path):

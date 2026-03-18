@@ -55,7 +55,7 @@ pip install --upgrade pip --quiet
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-pip install -r requirements.txt --quiet
+pip install -e . --quiet
 echo "✅ Dependencies installed"
 
 # Ensure correct Google GenAI package is installed (avoid deprecated package)
@@ -110,7 +110,7 @@ echo "2. Activate the virtual environment:"
 echo "   source venv/bin/activate"
 echo ""
 echo "3. Run the agent:"
-echo "   python src/agent.py"
+echo "   python agent.py"
 echo ""
 echo "📚 Documentation: docs/en/QUICK_START.md"
 echo "=============================================="

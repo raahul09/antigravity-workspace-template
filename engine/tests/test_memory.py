@@ -1,6 +1,6 @@
 import json
 
-from src.memory import MemoryManager
+from antigravity_engine.memory import MemoryManager
 
 
 def test_context_window_without_overflow(tmp_path):

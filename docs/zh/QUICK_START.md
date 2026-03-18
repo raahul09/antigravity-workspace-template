@@ -12,22 +12,22 @@
 
 ### 1. 安装依赖
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. 运行 Agent
 ```bash
-python src/agent.py
+ag-engine
 ```
 
 该命令每次执行一个任务，并会自动：
 - 🧠 从 `memory/agent_memory.md` 加载记忆
-- 🛠️ 发现 `src/tools/` 里的工具
+- 🛠️ 发现 `antigravity_engine/tools/` 里的工具
 - 📚 注入 `.context/` 的知识
 
 ### 3. 使用示例
 ```bash
-python src/agent.py "帮我写一个计算斐波那契数列的 Python 函数"
+ag-engine "帮我写一个计算斐波那契数列的 Python 函数"
 ```
 
 Agent 会执行该任务并将结果输出到终端。
@@ -76,13 +76,13 @@ ARTIFACTS_DIR=artifacts
 
 ```bash
 rm -f memory/agent_memory.md memory/agent_summary.md
-python src/agent.py
+ag-engine
 ```
 
 ## 📁 项目结构参考
 
 ```
-├── src/
+├── antigravity_engine/
 │   ├── agent.py         # 主循环
 │   ├── config.py        # 配置管理
 │   ├── memory.py        # 记忆引擎
@@ -105,7 +105,7 @@ pytest
 pytest tests/test_agent.py -v
 
 # 覆盖率
-pytest --cov=src tests/
+pytest --cov=antigravity_engine tests/
 ```
 
 ## 🐛 常见问题
@@ -121,11 +121,11 @@ echo $GOOGLE_API_KEY
 
 ### 工具未加载
 ```bash
-# 检查 src/tools/ 文件
-ls -la src/tools/
+# 检查 antigravity_engine/tools/ 文件
+ls -la antigravity_engine/tools/
 
 # 检查语法
-python -m py_compile src/tools/*.py
+python -m py_compile antigravity_engine/tools/*.py
 ```
 
 ### 记忆异常

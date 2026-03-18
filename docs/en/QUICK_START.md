@@ -12,22 +12,22 @@ Get up and running with the Antigravity Workspace Template in minutes.
 
 ### 1. Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. Run the Agent
 ```bash
-python src/agent.py
+ag-engine
 ```
 
 The agent runs a single task per invocation. It automatically:
 - 🧠 Loads memory from `memory/agent_memory.md`
-- 🛠️ Discovers tools in `src/tools/`
+- 🛠️ Discovers tools in `antigravity_engine/tools/`
 - 📚 Ingests context from `.context/`
 
 ### 3. Example Usage
 ```bash
-python src/agent.py "Build a Python function to calculate Fibonacci numbers"
+ag-engine "Build a Python function to calculate Fibonacci numbers"
 ```
 
 The agent will execute that task and print the result to stdout.
@@ -82,13 +82,13 @@ To reset:
 
 ```bash
 rm -f memory/agent_memory.md memory/agent_summary.md
-python src/agent.py
+ag-engine
 ```
 
 ## 📁 Project Structure Reference
 
 ```
-├── src/
+├── antigravity_engine/
 │   ├── agent.py         # Main agent loop
 │   ├── config.py        # Configuration management
 │   ├── memory.py        # Memory engine
@@ -111,7 +111,7 @@ pytest
 pytest tests/test_agent.py -v
 
 # With coverage
-pytest --cov=src tests/
+pytest --cov=antigravity_engine tests/
 ```
 
 ## 🐛 Troubleshooting
@@ -127,11 +127,11 @@ echo $GOOGLE_API_KEY
 
 ### Tools not loading
 ```bash
-# Verify src/tools/ has valid Python files
-ls -la src/tools/
+# Verify antigravity_engine/tools/ has valid Python files
+ls -la antigravity_engine/tools/
 
 # Check for syntax errors
-python -m py_compile src/tools/*.py
+python -m py_compile antigravity_engine/tools/*.py
 ```
 
 ### Memory issues

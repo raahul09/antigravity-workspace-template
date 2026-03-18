@@ -22,7 +22,7 @@ Bienvenido a la documentación integral de la **Plantilla Antigravity Workspace*
 La resumización recursiva comprime automáticamente el historial—los límites de contexto se acabaron.
 
 ### 🛠️ Protocolo Universal de Herramientas
-Patrón genérico ReAct. Solo registra cualquier función Python en `src/tools/`, y el Agente aprende a usarla automáticamente.
+Patrón genérico ReAct. Solo registra cualquier función Python en `antigravity_engine/tools/`, y el Agente aprende a usarla automáticamente.
 
 ### 🎓 Inicialización de Proyectos con Skills
 Usa la skill integrada `agent-repo-init` para crear un repositorio limpio desde esta plantilla.
@@ -47,6 +47,7 @@ Llama cualquier API compatible con OpenAI mediante la herramienta integrada `cal
 | Usar múltiples agentes | [Protocolo de Swarm](SWARM_PROTOCOL.md) |
 | Entender la arquitectura | [Filosofía del Proyecto](PHILOSOPHY.md) |
 | Ver qué viene | [Hoja de Ruta de Desarrollo](ROADMAP.md) |
+| Consultar contexto del proyecto | `ag ask "pregunta"` / `ag refresh` |
 
 ## 📊 Estructura del Proyecto
 
@@ -55,7 +56,7 @@ Llama cualquier API compatible con OpenAI mediante la herramienta integrada `cal
 ├── .antigravity/        # 🛸 Configuración/reglas de Antigravity
 ├── .context/            # 📚 Base de conocimiento auto-inyectada
 ├── artifacts/           # 📂 Outputs del agente (planes, logs, visuales)
-├── src/                 # 🧠 Código fuente del agente
+├── antigravity_engine/  # 🧠 Código fuente del agente
 │   ├── agent.py         # Bucle principal del agente
 │   ├── memory.py        # Gestor de memoria JSON
 │   ├── mcp_client.py    # Integración de MCP
@@ -65,14 +66,15 @@ Llama cualquier API compatible con OpenAI mediante la herramienta integrada `cal
 │   │   ├── coder_agent.py
 │   │   ├── reviewer_agent.py
 │   │   └── researcher_agent.py
-│   └── tools/           # Implementaciones de herramientas
-│       ├── demo_tool.py
-│       └── mcp_tools.py
+│   ├── tools/           # Implementaciones de herramientas
+│   │   ├── demo_tool.py
+│   │   └── mcp_tools.py
+│   └── hub/             # Knowledge Hub (escáner, agentes, pipeline)
 ├── tests/               # ✅ Suite de pruebas
 ├── scripts/             # 🧪 Scripts de utilidad
 ├── docker-compose.yml   # Stack de desarrollo local
 ├── README.md            # Página principal de aterrizaje
-└── requirements.txt     # Dependencias Python
+└── pyproject.toml       # Dependencias Python
 ```
 
 ## 🎓 Documentación por Rol
@@ -111,7 +113,7 @@ Llama cualquier API compatible con OpenAI mediante la herramienta integrada `cal
 R: ¡Sí! Configura `OPENAI_BASE_URL` y `OPENAI_API_KEY` en `.env`. Ver detalles en [Inicio Rápido](QUICK_START.md).
 
 **P: ¿Cómo agrego una herramienta personalizada?**  
-R: ¡Coloca un archivo Python en `src/tools/` con tus funciones. Sin registro necesario! Ver [Características Zero-Config](ZERO_CONFIG.md).
+R: ¡Coloca un archivo Python en `antigravity_engine/tools/` con tus funciones. Sin registro necesario! Ver [Características Zero-Config](ZERO_CONFIG.md).
 
 **P: ¿Cómo inicializo un proyecto nuevo desde esta plantilla?**  
 R: Usa la skill `agent-repo-init` en modo `quick` o `full`, o ejecuta `skills/agent-repo-init/scripts/init_project.py`. Ver [Características Zero-Config](ZERO_CONFIG.md).
@@ -122,8 +124,11 @@ R: ¡Usa Docker! Ver sección Docker en [Inicio Rápido](QUICK_START.md).
 **P: ¿Puedo usar múltiples agentes?**  
 R: ¡Sí! Usa el sistema de swarm. Ver [Protocolo de Swarm](SWARM_PROTOCOL.md).
 
-**P: ¿Cómo agrego contexto/conocimiento?**  
+**P: ¿Cómo agrego contexto/conocimiento?**
 R: ¡Crea archivos en directorio `.context/`. Se cargan automáticamente! Ver [Características Zero-Config](ZERO_CONFIG.md).
+
+**P: ¿Qué es el Knowledge Hub?**
+R: El Knowledge Hub (`ag ask`, `ag refresh`, `ag report`, `ag log-decision`) mantiene contexto del proyecto en `.antigravity/`, haciendo todos los IDEs de IA más inteligentes. Ver el [README](../../README.md) principal.
 
 ## 🤝 Contribuyendo
 
@@ -160,7 +165,7 @@ Este proyecto está bajo la licencia **MIT**. Ver [LICENSE](../../LICENSE) para 
 
 ---
 
-**Última Actualización:** Diciembre 2025  
-**Versión:** Fase 8 (Integración de MCP) ✅
+**Última Actualización:** Marzo 2026
+**Versión:** Fase 10 (Knowledge Hub) ✅
 
 **¡Feliz construcción con Antigravity!** 🚀

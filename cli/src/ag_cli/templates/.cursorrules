@@ -18,7 +18,8 @@ RULE: All Python code must use strict type hints and Google-style docstrings.
 RULE: Never silently swallow exceptions. Log, handle, or re-raise.
 
 # CONTEXT LOADING
-INSTRUCTION: Read `.antigravity/rules.md` for the full cognitive architecture.
-INSTRUCTION: Read `CONTEXT.md` for project conventions.
+INSTRUCTION: Read `.antigravity/rules.md` for behavioral guidelines.
+INSTRUCTION: Read `.antigravity/conventions.md` for project-specific conventions.
+INSTRUCTION: Check `.antigravity/decisions/` for architectural decisions.
+INSTRUCTION: Check `.antigravity/memory/` for past reports and findings.
 INSTRUCTION: Read `mission.md` if it exists — align with the project mission.
-INSTRUCTION: Scan `artifacts/error_journal.md` before acting — learn from past failures.

@@ -6,13 +6,13 @@
 
 ## 🛠️ Descubrimiento Automático de Herramientas
 
-Coloca cualquier archivo Python en `src/tools/` y el agente lo usará inmediatamente—sin imports, sin registro, sin boilerplate.
+Coloca cualquier archivo Python en `antigravity_engine/tools/` y el agente lo usará inmediatamente—sin imports, sin registro, sin boilerplate.
 
 ### Cómo Funciona
 
 1. **Define tu Herramienta**:
 ```python
-# src/tools/sentiment_analyzer.py
+# antigravity_engine/tools/sentiment_analyzer.py
 def analyze_sentiment(text: str) -> dict:
     """Analiza el sentimiento del texto dado.
     
@@ -29,7 +29,7 @@ def analyze_sentiment(text: str) -> dict:
 
 2. **Reinicia Agente** (una sola vez):
 ```bash
-python src/agent.py
+ag-engine
 ```
 
 3. **Úsala Inmediatamente** en prompts:
@@ -41,14 +41,14 @@ El agente descubrirá y usará automáticamente `analyze_sentiment()`.
 
 ## 🎓 Descubrimiento Automático de Skills
 
-Coloca una carpeta de skill en `src/skills/` (con `SKILL.md` y opcionalmente `tools.py`) y el agente cargará automáticamente:
+Coloca una carpeta de skill en `antigravity_engine/skills/` (con `SKILL.md` y opcionalmente `tools.py`) y el agente cargará automáticamente:
 - Documentación de `SKILL.md` en el contexto del prompt
 - Funciones públicas de `tools.py` como herramientas invocables
 
 ### Ejemplo integrado: `agent-repo-init`
 
 Este repositorio incluye:
-- `src/skills/agent-repo-init/`: integración de skill dentro del agente (`init_agent_repo`)
+- `antigravity_engine/skills/agent-repo-init/`: integración de skill dentro del agente (`init_agent_repo`)
 - `skills/agent-repo-init/`: paquete de skill portable con script de ejecución
 
 `agent-repo-init` soporta:
@@ -82,7 +82,7 @@ POST /api/users - crear nuevo usuario" > .context/api_docs.md
 
 2. **Reinicia Agente** (una sola vez):
 ```bash
-python src/agent.py
+ag-engine
 ```
 
 3. **Inyección Automática**:
@@ -90,7 +90,7 @@ Cada prompt al agente ahora incluye automáticamente todos los archivos `.contex
 
 **Comportamiento actual del loader:**
 - Lee solo archivos Markdown de nivel superior: `.context/*.md`
-- Si cambias `src/tools/`, reinicia el agente para recargar herramientas
+- Si cambias `antigravity_engine/tools/`, reinicia el agente para recargar herramientas
 
 ### Organizar Contexto
 
@@ -119,7 +119,7 @@ Cada prompt al agente ahora incluye automáticamente todos los archivos `.contex
 
 ### Paso 2: Agrega Herramientas (Lo que el agente puede hacer)
 ```python
-# src/tools/db_query.py
+# antigravity_engine/tools/db_query.py
 def query_users(email_pattern: str) -> list:
     """Consulta usuarios por patrón de email."""
     # Implementación

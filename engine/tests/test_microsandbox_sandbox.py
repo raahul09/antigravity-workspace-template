@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import requests
 
-from src.sandbox.microsandbox_exec import MicrosandboxSandbox
+from antigravity_engine.sandbox.microsandbox_exec import MicrosandboxSandbox
 
 
 class _MockResponse:
@@ -23,7 +23,7 @@ def test_microsandbox_server_unavailable(monkeypatch) -> None:
     sandbox = MicrosandboxSandbox()
 
     with patch(
-        "src.sandbox.microsandbox_exec.requests.post",
+        "antigravity_engine.sandbox.microsandbox_exec.requests.post",
         side_effect=requests.ConnectionError("connection refused"),
     ):
         result = sandbox.execute("print('hi')", timeout=2)
@@ -54,7 +54,7 @@ def test_microsandbox_success_execution(monkeypatch) -> None:
         _MockResponse(200, {"jsonrpc": "2.0", "result": "stopped"}),
     ]
 
-    with patch("src.sandbox.microsandbox_exec.requests.post", side_effect=responses):
+    with patch("antigravity_engine.sandbox.microsandbox_exec.requests.post", side_effect=responses):
         result = sandbox.execute("print('Hello from Microsandbox')", timeout=5)
 
     assert result.exit_code == 0
@@ -73,7 +73,7 @@ def test_microsandbox_timeout(monkeypatch) -> None:
             raise requests.Timeout("request timed out")
         return _MockResponse(200, {"jsonrpc": "2.0", "result": "ok"})
 
-    with patch("src.sandbox.microsandbox_exec.requests.post", side_effect=_post_with_timeout):
+    with patch("antigravity_engine.sandbox.microsandbox_exec.requests.post", side_effect=_post_with_timeout):
         result = sandbox.execute("import time; time.sleep(10)", timeout=2)
 
     assert result.exit_code == -1
@@ -100,7 +100,7 @@ def test_microsandbox_stderr_marks_failure(monkeypatch) -> None:
         _MockResponse(200, {"jsonrpc": "2.0", "result": "stopped"}),
     ]
 
-    with patch("src.sandbox.microsandbox_exec.requests.post", side_effect=responses):
+    with patch("antigravity_engine.sandbox.microsandbox_exec.requests.post", side_effect=responses):
         result = sandbox.execute("raise RuntimeError('boom')", timeout=5)
 
     assert result.exit_code == 1

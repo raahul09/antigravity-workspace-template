@@ -69,7 +69,7 @@ La Plantilla Antigravity Workspace está evolucionando hacia un **Sistema Operat
 **Objetivo**: Descubrimiento y carga de herramientas y conocimiento sin configuración
 
 **Logros:**
-- Descubrimiento automático de herramientas desde `src/tools/`
+- Descubrimiento automático de herramientas desde `antigravity_engine/tools/`
 - Auto-inyección desde archivos `.context/`
 - Hot reload en cambios de archivos
 - Generación de ayuda basada en docstrings

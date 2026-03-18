@@ -1,6 +1,6 @@
 import os
 
-from src.sandbox.local import LocalSandbox
+from antigravity_engine.sandbox.local import LocalSandbox
 
 
 def test_success_execution():

@@ -13,7 +13,7 @@ The sandbox module provides configurable code execution environments for agent-g
 ### Local Execution (Default)
 
 ```bash
-python src/agent.py "Write and execute Python code to calculate 2 + 2"
+ag-engine "Write and execute Python code to calculate 2 + 2"
 ```
 
 ### Microsandbox Execution (Opt-In)
@@ -31,7 +31,7 @@ Then run agent with microsandbox runtime:
 export SANDBOX_TYPE=microsandbox
 export MSB_SERVER_URL=http://127.0.0.1:5555
 export MSB_IMAGE=microsandbox/python
-python src/agent.py "Your code generation task"
+ag-engine "Your code generation task"
 ```
 
 ## Configuration
@@ -74,7 +74,7 @@ These are only used when `SANDBOX_TYPE=microsandbox`.
 ## Using the Sandbox in Code
 
 ```python
-from src.sandbox.factory import get_sandbox
+from antigravity_engine.sandbox.factory import get_sandbox
 
 sandbox = get_sandbox()
 result = sandbox.execute(code="print('Hello')", language="python", timeout=30)

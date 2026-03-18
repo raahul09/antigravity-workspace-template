@@ -15,13 +15,13 @@ Swarm 把复杂任务拆分给专家 Agent 协同完成：Router 分析并分发
 
 ### 交互式演示
 ```bash
-python -m src.swarm_demo
+python -m antigravity_engine.swarm_demo
 ```
 输入任务即可观察协作过程。
 
 ### 代码调用
 ```python
-from src.swarm import SwarmOrchestrator
+from antigravity_engine.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 result = swarm.execute("构建带错误处理的文件压缩工具")
@@ -30,8 +30,8 @@ print(result)  # 返回最终合成后的字符串结果
 
 ## 🔧 配置
 
-- 当前实现使用 `src/swarm.py` 内置的 worker 映射，尚未实现 `.antigravity/swarm_config.json` 配置加载。  
-- 自定义 Agent：继承 `BaseAgent`（参考 `src/agents`），在 `swarm.py` 注册即可。  
+- 当前实现使用 `antigravity_engine/swarm.py` 内置的 worker 映射，尚未实现 `.antigravity/swarm_config.json` 配置加载。  
+- 自定义 Agent：继承 `BaseAgent`（参考 `antigravity_engine/agents`），在 `swarm.py` 注册即可。  
 
 ## 📊 日志与产物
 

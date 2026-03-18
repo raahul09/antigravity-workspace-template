@@ -77,7 +77,7 @@ Esta plantilla **no** está atada a ningún IDE específico. Funciona en todas p
 | **Gemini CLI** | Lee `AGENTS.md` + `.context/` para inyección de conocimiento |
 | **Codex (OpenAI)** | Lee `AGENTS.md` + convenciones de directorio |
 | **Cline / Aider** | Aprovecha `CONTEXT.md` + convenciones de directorio |
-| **Cualquier agente compatible con OpenAI** | Herramientas auto-descubiertas en `engine/src/tools/`, entrada Python estándar |
+| **Cualquier agente compatible con OpenAI** | Herramientas auto-descubiertas en `engine/antigravity_engine/tools/`, entrada Python estándar |
 
 El secreto: la arquitectura está codificada en **archivos**, no en plugins específicos del IDE. Cualquier agente que lea archivos del proyecto se beneficia.
 
@@ -106,13 +106,13 @@ cd antigravity-workspace-template
 
 # 2. Instala las dependencias del motor
 cd engine
-pip install -r requirements.txt
+pip install -e .
 
 # 3. Configura las claves API
 cp .env.example .env && nano .env
 
 # 4. Ejecuta el agente apuntando a cualquier workspace
-python agent.py --workspace /ruta/a/tu/proyecto "Tu tarea aquí"
+ag-engine --workspace /ruta/a/tu/proyecto "Tu tarea aquí"
 ```
 
 **¡Eso es todo!** El IDE carga la configuración automáticamente y estás listo para pedir.
@@ -127,8 +127,8 @@ Esto **no** es otro wrapper de LangChain. Es un workspace mínimo y transparente
 |:---------------|:------------|
 | 🧠 **Memoria infinita** | Resumización recursiva que comprime contexto automáticamente |
 | 🧠 **Pensamiento Real** | Paso de "Deep Think" (Chain-of-Thought) antes de actuar |
-| 🎓 **Sistema de Habilidades** | Capacidades modulares en `engine/src/skills/` con carga automática |
-| 🛠️ **Herramientas universales** | Funciones Python en `engine/src/tools/` → se descubren solas |
+| 🎓 **Sistema de Habilidades** | Capacidades modulares en `engine/antigravity_engine/skills/` con carga automática |
+| 🛠️ **Herramientas universales** | Funciones Python en `engine/antigravity_engine/tools/` → se descubren solas |
 | 📚 **Contexto automático** | Archivos en `.context/` → se inyectan en los prompts |
 | 🔌 **Soporte MCP** | Conecta GitHub, bases de datos, sistemas de archivos |
 | 🤖 **Agentes Swarm** | Orquestación multiagente con patrón Router-Worker |
@@ -136,6 +136,7 @@ Esto **no** es otro wrapper de LangChain. Es un workspace mínimo y transparente
 | 🌐 **Independiente del LLM** | Usa OpenAI, Azure, Ollama o cualquier API compatible |
 | 📂 **Artifact-First** | Flujo por convención para planes, logs y evidencia |
 | 🔒 **Sandbox** | Ejecución configurable (local / microsandbox) |
+| 🔮 **Knowledge Hub** | `ag ask`, `ag refresh` — contexto del proyecto mantenido por sistema multi-agente |
 
 ---
 
@@ -147,7 +148,7 @@ antigravity-workspace-template/
 ├── cli/                          # 🖥️ CLI ligero (ag init)
 │   ├── pyproject.toml            #    Config del paquete & punto de entrada
 │   └── src/ag_cli/
-│       ├── cli.py                #    Comandos CLI (init, start-engine, version)
+│       ├── cli.py                #    Comandos CLI (init, ask, refresh, report, log-decision)
 │       └── templates/            #    Plantillas de arquitectura cognitiva
 │           ├── .cursorrules      #    → Inyectado en el proyecto destino
 │           ├── .antigravity/     #    → Inyectado en el proyecto destino
@@ -155,7 +156,7 @@ antigravity-workspace-template/
 │
 ├── engine/                       # ⚙️ Motor de Agente Python
 │   ├── agent.py                  #    Punto de entrada (soporte --workspace)
-│   ├── src/
+│   ├── antigravity_engine/
 │   │   ├── agent.py              #    Bucle principal (Think-Act-Reflect)
 │   │   ├── config.py             #    Configuración (aware del workspace)
 │   │   ├── memory.py             #    Gestor de memoria Markdown
@@ -164,9 +165,10 @@ antigravity-workspace-template/
 │   │   ├── tools/                #    Herramientas personalizadas (auto-descubiertas)
 │   │   ├── agents/               #    Agentes especialistas
 │   │   ├── sandbox/              #    Sandbox de ejecución de código
-│   │   └── skills/               #    Habilidades modulares (auto-cargadas)
+│   │   ├── skills/               #    Habilidades modulares (auto-cargadas)
+│   │   └── hub/                  #    Knowledge Hub (escáner, agentes, pipeline)
 │   ├── tests/                    #    Suite de pruebas
-│   └── requirements.txt          #    Dependencias del motor
+│   └── pyproject.toml            #    Dependencias del motor
 │
 ├── docs/                         # 📚 Documentación
 ├── README.md                     # Este archivo
@@ -178,7 +180,7 @@ antigravity-workspace-template/
 ## 💡 Construye una herramienta en 30 segundos
 
 ```python
-# engine/src/tools/my_tool.py
+# engine/antigravity_engine/tools/my_tool.py
 def analyze_sentiment(text: str) -> str:
     """Analiza el sentimiento del texto dado."""
     return "positive" if len(text) > 10 else "neutral"
@@ -213,7 +215,7 @@ Conecta herramientas externas:
 Descompón tareas complejas:
 
 ```python
-from engine.src.swarm import SwarmOrchestrator
+from antigravity_engine.swarm import SwarmOrchestrator
 
 swarm = SwarmOrchestrator()
 result = swarm.execute("Construir y revisar una calculadora")
@@ -245,6 +247,29 @@ El swarm enruta automáticamente a los agentes Coder, Reviewer y Researcher, sin
 
 ---
 
+## 🔮 Knowledge Hub
+
+El Knowledge Hub mantiene archivos de contexto del proyecto en `.antigravity/`, haciendo todos los IDEs de IA más inteligentes.
+
+```bash
+# Inicializar contexto del proyecto
+ag init mi-proyecto && cd mi-proyecto
+
+# Escanear proyecto y generar convenciones (requiere LLM)
+ag refresh
+
+# Preguntar sobre el proyecto (requiere LLM)
+ag ask "¿Qué framework usa este proyecto?"
+
+# Registrar reportes y decisiones (sin LLM)
+ag report "Condición de carrera en el handler de login"
+ag log-decision "Usar Redis para sesiones" "Equipo ya familiarizado"
+```
+
+Todos los comandos soportan `--workspace` para apuntar a cualquier directorio.
+
+---
+
 ## 📚 Documentación
 
 | Idioma | Enlace |
@@ -259,7 +284,8 @@ El swarm enruta automáticamente a los agentes Coder, Reviewer y Researcher, sin
 
 - ✅ Fases 1-8: Foundation, Memory, Tools, Swarm, MCP
 - ✅ Fase 9: Refactorización Monorepo V1.0 — Arquitectura desacoplada CLI + Engine
-- 🚀 Fase 10: Enterprise Core (próximamente)
+- ✅ Fase 10: Knowledge Hub — sistema multi-agente de contexto de proyecto
+- 🚀 Fase 11: Automatización — git hooks, file watching, migraciones (próximamente)
 
 Consulta la [Hoja de Ruta](docs/es/ROADMAP.md) para detalles.
 

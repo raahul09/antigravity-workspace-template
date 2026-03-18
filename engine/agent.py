@@ -27,7 +27,7 @@ def main():
     if args.workspace:
         os.environ["WORKSPACE_PATH"] = str(Path(args.workspace).resolve())
 
-    from src.agent import GeminiAgent
+    from antigravity_engine.agent import GeminiAgent
 
     task = " ".join(args.task).strip() or os.environ.get(
         "AGENT_TASK", "帮助我查看今天的天气"

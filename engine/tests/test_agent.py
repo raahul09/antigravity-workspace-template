@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.agent import GeminiAgent
+from antigravity_engine.agent import GeminiAgent
 
 @pytest.fixture
 def mock_agent():
     """Fixture to create an agent with mocked dependencies."""
-    with patch('src.agent.MemoryManager') as MockMemory:
+    with patch('antigravity_engine.agent.MemoryManager') as MockMemory:
         agent = GeminiAgent()
         agent.memory = MockMemory.return_value
         agent.memory.get_history.return_value = []
@@ -35,6 +35,6 @@ def test_agent_think_act_loop(mock_agent):
 
 def test_agent_tools_integration():
     """Test that tools can be imported and used."""
-    from src.tools.example_tool import web_search
+    from antigravity_engine.tools.example_tool import web_search
     result = web_search("test query")
     assert "Search results for: test query" in result

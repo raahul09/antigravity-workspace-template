@@ -22,12 +22,12 @@ def _load_skill_module() -> ModuleType:
 
     skill_tools_path = (
         Path(__file__).resolve().parents[1]
-        / "src"
+        / "antigravity_engine"
         / "skills"
         / "agent-repo-init"
         / "tools.py"
     )
-    spec = spec_from_file_location("src.skills.agent-repo-init.tools", skill_tools_path)
+    spec = spec_from_file_location("antigravity_engine.skills.agent-repo-init.tools", skill_tools_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Failed to load skill module spec.")
 
@@ -131,13 +131,13 @@ def test_portable_script_runs_with_template_override(tmp_path: Path) -> None:
     template_root.mkdir(parents=True, exist_ok=True)
     destination_root.mkdir(parents=True, exist_ok=True)
 
-    (template_root / "requirements.txt").write_text("", encoding="utf-8")
+    (template_root / "pyproject.toml").write_text("[project]\nname='test'", encoding="utf-8")
     (template_root / ".env.example").write_text("# sample env\n", encoding="utf-8")
-    (template_root / "src").mkdir(parents=True, exist_ok=True)
-    (template_root / "src" / "agent.py").write_text("print('ok')\n", encoding="utf-8")
+    (template_root / "antigravity_engine").mkdir(parents=True, exist_ok=True)
+    (template_root / "antigravity_engine" / "agent.py").write_text("print('ok')\n", encoding="utf-8")
 
     script_path = (
-        Path(__file__).resolve().parents[1]
+        Path(__file__).resolve().parents[2]
         / "skills"
         / "agent-repo-init"
         / "scripts"

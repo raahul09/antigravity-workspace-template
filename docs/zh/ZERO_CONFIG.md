@@ -6,16 +6,16 @@
 
 ## 🛠️ 自动发现工具
 
-把任意 Python 文件放进 `src/tools/`，Agent 会立刻识别其顶层函数——无需 import、无需登记。
+把任意 Python 文件放进 `antigravity_engine/tools/`，Agent 会立刻识别其顶层函数——无需 import、无需登记。
 
 ### 工作方式
-1) 🔍 扫描 `src/tools/` 下所有 `.py`  
+1) 🔍 扫描 `antigravity_engine/tools/` 下所有 `.py`  
 2) 📋 索引顶层函数并读取 docstring  
 3) ✅ 注册公开函数为可调用工具  
 
 ### 示例
 ```python
-# src/tools/sentiment_analyzer.py
+# antigravity_engine/tools/sentiment_analyzer.py
 def analyze_sentiment(text: str) -> dict:
     """情感分析：返回分数与标签。"""
     if len(text) > 10:
@@ -31,14 +31,14 @@ def analyze_sentiment(text: str) -> dict:
 
 ## 🎓 自动发现 Skill
 
-把一个技能目录放到 `src/skills/` 下（包含 `SKILL.md`，可选 `tools.py`），Agent 会自动加载：
+把一个技能目录放到 `antigravity_engine/skills/` 下（包含 `SKILL.md`，可选 `tools.py`），Agent 会自动加载：
 - `SKILL.md` 内容会注入提示上下文
 - `tools.py` 中的公开函数会注册为可调用工具
 
 ### 内置示例：`agent-repo-init`
 
 当前仓库包含：
-- `src/skills/agent-repo-init/`：Agent 内部可调用 skill（`init_agent_repo`）
+- `antigravity_engine/skills/agent-repo-init/`：Agent 内部可调用 skill（`init_agent_repo`）
 - `skills/agent-repo-init/`：可移植 skill 包（脚本入口）
 
 `agent-repo-init` 支持：
@@ -71,7 +71,7 @@ def analyze_sentiment(text: str) -> dict:
 
 **场景**：构建数据分析工具  
 - 上下文：`.context/database_schema.md` 记录表结构  
-- 工具：`src/tools/db_query.py` 提供查询函数  
+- 工具：`antigravity_engine/tools/db_query.py` 提供查询函数  
 - 对话：直接让 Agent“查找最近一月创建的用户”，它既“知道”结构，也“能”查询。
 
 ## 🎓 最佳实践
@@ -83,9 +83,9 @@ def analyze_sentiment(text: str) -> dict:
 
 **工具没加载？**
 ```bash
-ls -la src/tools/
-python -m py_compile src/tools/my_tool.py
-python src/agent.py  # 重启
+ls -la antigravity_engine/tools/
+python -m py_compile antigravity_engine/tools/my_tool.py
+ag-engine  # 重启
 ```
 
 **上下文未注入？**
@@ -93,7 +93,7 @@ python src/agent.py  # 重启
 ls -la .context/
 cat .context/your_file.md
 du -sh .context/
-python src/agent.py  # 重启
+ag-engine  # 重启
 ```
 
 ## 🚀 进阶
