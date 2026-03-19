@@ -269,6 +269,58 @@ result = swarm.execute("构建并审查一个计算器")
 
 ---
 
+## 实战演示：NVIDIA API + Kimi K2.5
+
+使用 [Moonshot Kimi K2.5](https://build.nvidia.com/moonshotai/kimi-k2-5) 通过 NVIDIA 免费 API 进行端到端测试。任何 OpenAI 兼容端点都可以同样使用。
+
+**1. 配置 `.env`**
+
+```bash
+OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
+OPENAI_API_KEY=nvapi-your-key-here
+OPENAI_MODEL=moonshotai/kimi-k2.5
+```
+
+**2. 扫描你的项目**
+
+```bash
+$ ag refresh --workspace .
+Updated .antigravity/conventions.md
+```
+
+Kimi K2.5 生成的输出：
+```markdown
+# Project Conventions
+## Primary Language & Frameworks
+- **Language**: Python (5,135 files, 99%+ of codebase)
+- **Infrastructure**: Docker, Docker Compose
+- **CI/CD**: GitHub Actions
+...
+```
+
+**3. 提问**
+
+```bash
+$ ag ask "这个项目支持哪些 LLM 后端？"
+根据上下文，项目支持通过 NVIDIA API 使用 Kimi K2.5。
+架构使用 OpenAI 兼容格式，支持任何端点，
+包括通过 LiteLLM 使用的本地 LLM、NVIDIA NIM 模型等。
+```
+
+**4. 记录决策（无需 LLM）**
+
+```bash
+$ ag report "认证模块需要重构"
+Logged report to .antigravity/memory/reports.md
+
+$ ag log-decision "使用 PostgreSQL" "团队有丰富经验"
+Logged decision to .antigravity/decisions/log.md
+```
+
+> 支持任何 OpenAI 兼容供应商：**NVIDIA**、**OpenAI**、**Ollama**、**vLLM**、**LM Studio**、**Groq** 等。
+
+---
+
 ## 文档
 
 | | |

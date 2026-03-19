@@ -269,6 +269,58 @@ Ver [docs Sandbox](docs/es/SANDBOX.md).
 
 ---
 
+## Demo Real: NVIDIA API + Kimi K2.5
+
+Probado end-to-end con [Moonshot Kimi K2.5](https://build.nvidia.com/moonshotai/kimi-k2-5) via el tier gratuito de NVIDIA. Cualquier endpoint compatible con OpenAI funciona igual.
+
+**1. Configurar `.env`**
+
+```bash
+OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
+OPENAI_API_KEY=nvapi-your-key-here
+OPENAI_MODEL=moonshotai/kimi-k2.5
+```
+
+**2. Escanear tu proyecto**
+
+```bash
+$ ag refresh --workspace .
+Updated .antigravity/conventions.md
+```
+
+Salida generada por Kimi K2.5:
+```markdown
+# Project Conventions
+## Primary Language & Frameworks
+- **Language**: Python (5,135 files, 99%+ of codebase)
+- **Infrastructure**: Docker, Docker Compose
+- **CI/CD**: GitHub Actions
+...
+```
+
+**3. Hacer preguntas**
+
+```bash
+$ ag ask "¿Qué backends LLM soporta este proyecto?"
+Basado en el contexto, el proyecto soporta NVIDIA API con Kimi K2.5.
+La arquitectura usa formato compatible con OpenAI, soportando cualquier
+endpoint incluyendo LLMs locales via LiteLLM, modelos NVIDIA NIM, etc.
+```
+
+**4. Registrar decisiones (sin LLM)**
+
+```bash
+$ ag report "El módulo de auth necesita refactoring"
+Logged report to .antigravity/memory/reports.md
+
+$ ag log-decision "Usar PostgreSQL" "El equipo tiene experiencia profunda"
+Logged decision to .antigravity/decisions/log.md
+```
+
+> Funciona con cualquier proveedor compatible con OpenAI: **NVIDIA**, **OpenAI**, **Ollama**, **vLLM**, **LM Studio**, **Groq**, etc.
+
+---
+
 ## Documentación
 
 | | |
