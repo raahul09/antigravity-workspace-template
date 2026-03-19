@@ -4,7 +4,7 @@ Swarm Demo - Demonstration of multi-agent collaboration.
 Run this script to see the Antigravity Swarm in action.
 
 Usage:
-    python -m src.swarm_demo
+    python -m antigravity_engine.swarm_demo
 """
 
 from antigravity_engine.swarm import SwarmOrchestrator

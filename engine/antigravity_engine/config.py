@@ -127,6 +127,11 @@ class Settings(BaseSettings):
         return self.resolve_path(self.MEMORY_SUMMARY_FILE)
 
     @property
+    def antigravity_dir_path(self) -> Path:
+        """Return the resolved antigravity context directory path."""
+        return self.resolve_path(self.ANTIGRAVITY_DIR)
+
+    @property
     def artifacts_path(self) -> Path:
         """Return the resolved artifacts directory path."""
         return self.resolve_path(self.ARTIFACTS_DIR)

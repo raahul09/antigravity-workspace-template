@@ -26,7 +26,7 @@ class GeminiAgent:
     Implements the Think-Act-Reflect loop with MCP integration.
 
     The agent supports two types of tools:
-    1. Local tools: Python functions in src/tools/ directory
+    1. Local tools: Python functions in antigravity_engine/tools/ directory
     2. MCP tools: Tools from connected MCP servers (when MCP_ENABLED=true)
 
     MCP tools are transparently integrated and appear alongside local tools,
@@ -41,7 +41,7 @@ class GeminiAgent:
         self.mcp_manager = None  # Will be initialized if MCP is enabled
         self.use_openai_backend = False  # Use OpenAI-compatible backend when configured
 
-        # Dynamically load all tools from src/tools/ directory
+        # Dynamically load all tools from antigravity_engine/tools/ directory
         self.available_tools: Dict[str, Callable[..., Any]] = self._load_tools()
 
         # Initialize MCP integration if enabled
@@ -162,19 +162,19 @@ class GeminiAgent:
 
     def _load_tools(self) -> Dict[str, Callable[..., Any]]:
         """
-        Automatically discover and load tools from src/tools/ directory.
+        Automatically discover and load tools from antigravity_engine/tools/ directory.
 
         Scans the tools directory for Python modules, imports them dynamically,
         and registers any public functions (not starting with _) as available tools.
         This enables the "zero-config" philosophy - just drop a Python file into
-        src/tools/ and it becomes available to the agent.
+        antigravity_engine/tools/ and it becomes available to the agent.
 
         Returns:
             Dictionary mapping tool names to callable functions.
         """
         tools = {}
 
-        # Get the src/tools directory path relative to this file
+        # Get the antigravity_engine/tools directory path relative to this file
         tools_dir = Path(__file__).parent / "tools"
 
         if not tools_dir.exists():
@@ -215,34 +215,45 @@ class GeminiAgent:
 
     def _load_context(self) -> str:
         """
-        Automatically load and concatenate all markdown files from .context/ directory.
+        Load and concatenate all markdown context files.
 
-        This allows users to add project-specific knowledge, coding standards, or
-        custom rules by simply dropping .md files into .context/. The content is
-        automatically injected into the agent's system prompt.
+        Scans .antigravity/*.md first (primary source), then .context/*.md
+        for backward compatibility.  Duplicates are skipped (.antigravity/
+        takes priority).  Skill documentation is appended at the end.
 
         Returns:
-            Concatenated content of all .md files in .context/ directory.
+            Concatenated content of all discovered .md context files.
         """
-        context_parts = []
+        context_parts: list[str] = []
+        seen: set[str] = set()
 
-        # Resolve .context/ relative to the user workspace, not the engine
+        # Primary source: .antigravity/
+        ag_dir = self.settings.antigravity_dir_path
+        if ag_dir.exists():
+            for context_file in sorted(ag_dir.glob("*.md")):
+                seen.add(context_file.name)
+                try:
+                    content = context_file.read_text(encoding="utf-8")
+                    context_parts.append(f"\n--- {context_file.name} ---\n{content}")
+                except Exception as e:
+                    print(f"   ⚠️ Failed to load context from .antigravity/{context_file.name}: {e}")
+
+        # Backward-compatible fallback: .context/
         context_dir = self.settings.project_root_path / ".context"
+        if context_dir.exists():
+            for context_file in sorted(context_dir.glob("*.md")):
+                if context_file.name in seen:
+                    continue
+                seen.add(context_file.name)
+                try:
+                    content = context_file.read_text(encoding="utf-8")
+                    context_parts.append(f"\n--- {context_file.name} ---\n{content}")
+                except Exception as e:
+                    print(f"   ⚠️ Failed to load context from .context/{context_file.name}: {e}")
 
-        if not context_dir.exists():
-            return ""
-
-        # Load all markdown files
-        for context_file in sorted(context_dir.glob("*.md")):
-            try:
-                content = context_file.read_text(encoding="utf-8")
-                context_parts.append(f"\n--- {context_file.name} ---\n{content}")
-            except Exception as e:
-                print(f"   ⚠️ Failed to load context from {context_file.name}: {e}")
-        
         # Inject Skill Docs if present
         if self.skill_docs:
-             context_parts.append(f"\n--- SKILLS DOCUMENTATION ---\n{self.skill_docs}")
+            context_parts.append(f"\n--- SKILLS DOCUMENTATION ---\n{self.skill_docs}")
 
         if context_parts:
             print(f"   📚 Loaded context from {len(context_parts)} file(s)")

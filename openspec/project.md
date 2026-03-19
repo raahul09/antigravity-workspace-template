@@ -10,10 +10,12 @@ Its primary goals are to provide a minimal, transparent workspace where agents h
 - **Artifact-First Workflow** where every task produces plans, logs, and evidence.
 
 ## Tech Stack
-- **Language:** Python 3.x
+- **Language:** Python 3.10+
 - **AI Model:** Google GenAI (Optimized for Gemini 2.0 Flash), but architecture is LLM agnostic.
 - **Data Validation:** Pydantic (used for tool arguments and return values).
 - **Integration:** Model Context Protocol (MCP) `mcp[cli]`.
+- **Knowledge Hub:** `openai-agents[litellm]` for multi-agent project context pipelines.
+- **CLI:** `typer` + `rich` for the `ag` command-line tool.
 - **Testing:** Pytest.
 - **Environment:** `python-dotenv` for configuration.
 
@@ -30,7 +32,7 @@ Its primary goals are to provide a minimal, transparent workspace where agents h
 - **Statelessness:** Tools should generally be stateless; context is passed via arguments.
 - **Swarm Orchestrator:** Uses a Router-Worker pattern to delegate complex tasks to specialist agents (Coder, Reviewer, Researcher).
 - **Event-Driven:** The architecture supports event-driven workflows.
-- **Zero-Config:** Configuration is auto-loaded from `.context/` and `.cursorrules`.
+- **Zero-Config:** Configuration is auto-loaded from `.antigravity/` (primary) and `.context/` (backward-compatible fallback).
 
 ### Testing Strategy
 - **Framework:** `pytest` is the standard testing framework.
@@ -41,6 +43,10 @@ Its primary goals are to provide a minimal, transparent workspace where agents h
 - Standard feature-branch workflow.
 - Commits should be atomic and descriptive.
 - Documentation (in `docs/`) should be updated alongside code changes.
+
+### Knowledge Hub
+- **Hub Module** (`antigravity_engine/hub/`): Multi-agent pipelines for project context management — scans the workspace, generates conventions docs, and answers project questions via LLM.
+- **CLI Commands:** `ag refresh` scans the project and updates `.antigravity/conventions.md`. `ag ask` answers questions about the project. `ag report` and `ag log-decision` append to memory/decision logs.
 
 ## Domain Context
 - **Infinite Memory:** The system uses recursive summarization to compress interaction history, allowing long-running contexts without hitting token limits.

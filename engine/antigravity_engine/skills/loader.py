@@ -5,9 +5,9 @@ from typing import Dict, Callable, Any, List
 
 def load_skills(agent_tools: Dict[str, Callable[..., Any]]) -> str:
     """
-    Scans src/skills/ directory for skill packages.
-    
-    For each subfolder in src/skills/:
+    Scans antigravity_engine/skills/ directory for skill packages.
+
+    For each subfolder in antigravity_engine/skills/:
     1. Looks for tools.py: Registers public functions as tools.
     2. Looks for SKILL.md: Reads documentation content.
     
@@ -26,7 +26,7 @@ def load_skills(agent_tools: Dict[str, Callable[..., Any]]) -> str:
 
     print(f"📦 Scanning for skills in {skills_dir}...")
 
-    # Iterate over directories in src/skills/
+    # Iterate over directories in antigravity_engine/skills/
     for skill_path in skills_dir.iterdir():
         if not skill_path.is_dir() or skill_path.name.startswith("_") or skill_path.name == "__pycache__":
             continue

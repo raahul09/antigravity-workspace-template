@@ -2,7 +2,7 @@
 Test tool for demonstrating dynamic tool discovery.
 
 This file demonstrates the zero-config capability - just drop this file
-into src/tools/ and it becomes available to the agent automatically.
+into antigravity_engine/tools/ and it becomes available to the agent automatically.
 """
 
 

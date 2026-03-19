@@ -31,7 +31,12 @@ async def refresh_pipeline(workspace: Path, quick: bool = False) -> None:
     prompt = _format_scan_report(report)
 
     agent = build_refresh_agent(model)
-    from agents import Runner
+    try:
+        from agents import Runner
+    except ImportError:
+        raise ImportError(
+            "OpenAI Agent SDK not found. Install: pip install antigravity-engine"
+        ) from None
 
     result = await Runner.run(agent, prompt)
     conventions_content = result.final_output
@@ -84,7 +89,12 @@ async def ask_pipeline(workspace: Path, question: str) -> str:
     prompt = f"Project context:\n{context}\n\nQuestion: {question}"
 
     agent = build_reviewer_agent(model)
-    from agents import Runner
+    try:
+        from agents import Runner
+    except ImportError:
+        raise ImportError(
+            "OpenAI Agent SDK not found. Install: pip install antigravity-engine"
+        ) from None
 
     result = await Runner.run(agent, prompt)
     return result.final_output

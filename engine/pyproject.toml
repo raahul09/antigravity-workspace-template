@@ -25,4 +25,4 @@ build-backend = "hatchling.build"
 packages = ["antigravity_engine"]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pytest-asyncio"]

@@ -48,8 +48,13 @@ def _get_templates_dir() -> Path:
     return Path(str(templates))
 
 
-def _copy_tree(src: Path, dst: Path) -> list[str]:
+def _copy_tree(src: Path, dst: Path, force: bool = False) -> list[str]:
     """Recursively copy *src* into *dst*, preserving dotfiles.
+
+    Args:
+        src: Source directory to copy from.
+        dst: Destination directory to copy into.
+        force: If True, overwrite existing files.
 
     Returns a list of relative paths that were created.
     """
@@ -63,7 +68,7 @@ def _copy_tree(src: Path, dst: Path) -> list[str]:
             target.mkdir(parents=True, exist_ok=True)
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
-            if not target.exists():
+            if force or not target.exists():
                 shutil.copy2(item, target)
             created.append(str(relative))
     return created
@@ -117,6 +122,12 @@ def init_cmd(
         ...,
         help="Directory to inject the cognitive architecture into.",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing files instead of skipping them.",
+    ),
 ) -> None:
     """Inject the Artifact-First cognitive architecture into TARGET_DIR."""
 
@@ -140,7 +151,7 @@ def init_cmd(
         "[cyan]⚛  Injecting Artifact-First cognitive architecture…[/cyan]",
         spinner="dots",
     ):
-        created = _copy_tree(templates, target)
+        created = _copy_tree(templates, target, force=force)
         # let the user enjoy the spinner for a beat
         time.sleep(0.6)
 

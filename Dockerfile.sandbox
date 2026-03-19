@@ -2,7 +2,7 @@
 # Minimal sandbox runtime for code execution
 # Used as default for SANDBOX_TYPE=docker
 
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Install minimal packages for common code execution scenarios
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -17,6 +17,7 @@ The Antigravity Workspace Template is evolving toward a comprehensive **Agent Op
 | 7️⃣ **Multi-Agent Swarm** | ✅ Complete | Router-Worker orchestration |
 | 8️⃣ **MCP Integration** | ✅ Complete | Model Context Protocol support |
 | 9️⃣ **Enterprise Core** | 🚀 In Progress | Sandbox, orchestration, agent OS |
+| 🔟 **Knowledge Hub** | ✅ Complete | Multi-agent project context system |
 
 ## ✅ Completed Phases
 
@@ -236,13 +237,24 @@ Ready to code? Pick a Phase 9 component:
 - 🔗 Enterprise connectors
 - 🌍 Distributed architecture
 
+## ✅ Phase 10: Knowledge Hub ✅
+**Goal**: Multi-agent project context system — automated conventions extraction and Q&A
+
+**Completed:** March 2026
+
+**Achievements:**
+- Hub module (`antigravity_engine/hub/`) with scanner, agents, and pipeline
+- `ag refresh` — scans project and generates `.antigravity/conventions.md` via LLM
+- `ag ask` — answers project questions using reviewer agent
+- `ag report` / `ag log-decision` — local memory and decision logging
+- OpenAI Agent SDK integration with LiteLLM for model flexibility
+
 ## 📈 Adoption Timeline
 
-- **Q1 2025**: Sandbox MVP (E2B integration)
-- **Q2 2025**: Orchestration engine (DAG execution)
-- **Q3 2025**: Enterprise connectors
-- **Q4 2025**: Full observability stack
-- **2026**: Agent OS v1.0
+- **2024 H2**: Foundation through MCP Integration (Phases 1–8) — completed
+- **2025**: Enterprise Core (Phase 9) — sandbox MVP, orchestration engine
+- **2026 Q1**: Knowledge Hub (Phase 10) — completed
+- **2026+**: Agent OS v1.0
 
 *(Timeline is aspirational and dependent on community adoption)*
 

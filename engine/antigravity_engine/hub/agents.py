@@ -68,7 +68,12 @@ def build_refresh_agent(model: str):
     Returns:
         An Agent instance configured for project refresh.
     """
-    from agents import Agent
+    try:
+        from agents import Agent
+    except ImportError:
+        raise ImportError(
+            "OpenAI Agent SDK not found. Install: pip install antigravity-engine"
+        ) from None
 
     return Agent(
         name="RefreshAgent",
@@ -86,7 +91,12 @@ def build_reviewer_agent(model: str):
     Returns:
         An Agent instance configured for Q&A.
     """
-    from agents import Agent
+    try:
+        from agents import Agent
+    except ImportError:
+        raise ImportError(
+            "OpenAI Agent SDK not found. Install: pip install antigravity-engine"
+        ) from None
 
     return Agent(
         name="ReviewerAgent",
