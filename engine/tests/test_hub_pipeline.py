@@ -1,4 +1,4 @@
-"""Tests for hub.pipeline - mocked Runner."""
+"""Tests for hub.pipeline — mocked Runner."""
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 

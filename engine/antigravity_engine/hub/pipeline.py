@@ -1,4 +1,4 @@
-"""Hub pipelines - refresh and ask."""
+"""Hub pipelines — refresh and ask."""
 from __future__ import annotations
 
 import subprocess
@@ -140,7 +140,6 @@ async def ask_pipeline(workspace: Path, question: str) -> str:
     print("[1/3] Gathering project context...", file=sys.stderr)
 
     context = _build_ask_context(workspace)
-    prompt = f"Project context:\n{context}\n\nQuestion: {question}"
     prompt = f"Project context:\n{context}\n\nQuestion: {question}"
 
     agent = build_reviewer_agent(model)
