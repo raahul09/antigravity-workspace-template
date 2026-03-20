@@ -375,6 +375,15 @@ Ideas are contributions too! Open an [issue](https://github.com/study8677/antigr
       <sub>Memory context window fix · MCP shutdown graceful handling (#28)</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="20%">
+      <a href="https://github.com/goodmorning10">
+        <img src="https://github.com/goodmorning10.png" width="80" /><br/>
+        <b>goodmorning10</b>
+      </a><br/>
+      <sub>Enhanced <code>ag ask</code> context loading — added CONTEXT.md, AGENTS.md, and memory/*.md as context sources (#29)</sub>
+    </td>
+  </tr>
 </table>
 
 ## Star History

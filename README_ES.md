@@ -375,6 +375,15 @@ Logged decision to .antigravity/decisions/log.md
       <sub>Fix ventana de contexto de memoria · Manejo graceful de cierre MCP (#28)</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="20%">
+      <a href="https://github.com/goodmorning10">
+        <img src="https://github.com/goodmorning10.png" width="80" /><br/>
+        <b>goodmorning10</b>
+      </a><br/>
+      <sub>Mejora de carga de contexto en <code>ag ask</code> — añadió CONTEXT.md, AGENTS.md y memory/*.md como fuentes de contexto (#29)</sub>
+    </td>
+  </tr>
 </table>
 
 ## Star History

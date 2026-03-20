@@ -375,6 +375,15 @@ Logged decision to .antigravity/decisions/log.md
       <sub>记忆上下文窗口修复 · MCP 关闭优雅处理 (#28)</sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="20%">
+      <a href="https://github.com/goodmorning10">
+        <img src="https://github.com/goodmorning10.png" width="80" /><br/>
+        <b>goodmorning10</b>
+      </a><br/>
+      <sub>增强 <code>ag ask</code> 上下文加载 — 新增 CONTEXT.md、AGENTS.md 和 memory/*.md 作为上下文来源 (#29)</sub>
+    </td>
+  </tr>
 </table>
 
 ## Star History
