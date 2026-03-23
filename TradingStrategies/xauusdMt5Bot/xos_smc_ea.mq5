@@ -24,7 +24,7 @@ CSymbolInfo    symbol;
 //+------------------------------------------------------------------+
 
 //--- Account & Connection
-input int      inpMagicNumber       = 777888;           // Magic number for trade identification
+input ulong    inpMagicNumber       = 777888;           // Magic number for trade identification
 input string   inpSymbol            = "XAUUSD";         // Trading symbol
 input bool     inpUseAutoLogin      = false;            // Use terminal's logged-in account
 input int      inpMT5Login          = 0;                // MT5 Login ID (if manual login)
@@ -165,7 +165,7 @@ void OnDeinit(const int reason)
       Comment("");
 
    Log("=== XOS SMC EA Deinitialized ===");
-   Log("Reason: " + EnumToString(reason));
+   Log("Reason: " + IntegerToString(reason));
 }
 
 //+------------------------------------------------------------------+
@@ -247,9 +247,7 @@ void OnTimer()
 void OnTrade()
 {
    //--- Handle trade events (position updates, orders filled)
-   position.SelectByMagic(inpMagicNumber);
-
-   if(position.SelectByMagic(inpMagicNumber))
+   if(position.SelectByMagic(inpSymbol, inpMagicNumber))
    {
       Log("Trade event detected. Positions updated.");
    }
@@ -383,9 +381,9 @@ double GetRSIValue()
 //+------------------------------------------------------------------+
 //| Check for Liquidity Sweep Setups                                 |
 //+------------------------------------------------------------------+
-void CheckSweepSetups(MqlTick &tick, MqlRates &rates1M, int trendDirection, double rsiValue)
+void CheckSweepSetups(MqlTick &tick, MqlRates &rates1M[], int trendDirection, double rsiValue)
 {
-   if(rates1M.Length() < 2)
+   if(ArraySize(rates1M) < 2)
       return;
 
    //--- Get last closed 1M candle (index 1)
@@ -463,7 +461,7 @@ void ExecuteBuyTrade(double slPrice, double entryPrice, double slDistancePoints)
 {
    double lotSize = CalculateLotSize(slDistancePoints);
 
-   if(lotSize <= 0 || lotSize < symbol.VolumeMin() || lotSize > symbol.VolumeMax())
+   if(lotSize <= 0 || lotSize < symbol.LotsMin() || lotSize > symbol.LotsMax())
    {
       Log("ERROR: Invalid lot size calculated: " + DoubleToString(lotSize, 2));
       return;
@@ -503,7 +501,7 @@ void ExecuteSellTrade(double slPrice, double entryPrice, double slDistancePoints
 {
    double lotSize = CalculateLotSize(slDistancePoints);
 
-   if(lotSize <= 0 || lotSize < symbol.VolumeMin() || lotSize > symbol.VolumeMax())
+   if(lotSize <= 0 || lotSize < symbol.LotsMin() || lotSize > symbol.LotsMax())
    {
       Log("ERROR: Invalid lot size calculated: " + DoubleToString(lotSize, 2));
       return;
@@ -548,18 +546,18 @@ double CalculateLotSize(double slDistancePoints)
    double tickSize = symbol.TickSize();
 
    if(slDistancePoints <= 0 || tickSize <= 0)
-      return symbol.VolumeMin();
+      return symbol.LotsMin();
 
    //--- Calculate raw lot size
    // Risk Amount = Lot Size * (SL Distance / Tick Size) * Tick Value
    double rawLot = riskAmount / ((slDistancePoints / tickSize) * tickValue);
 
    //--- Floor to volume step
-   double volumeStep = symbol.VolumeStep();
+   double volumeStep = symbol.LotsStep();
    double lotSize = MathFloor(rawLot / volumeStep) * volumeStep;
 
    //--- Clamp to min/max
-   lotSize = MathMax(symbol.VolumeMin(), MathMin(lotSize, symbol.VolumeMax()));
+   lotSize = MathMax(symbol.LotsMin(), MathMin(lotSize, symbol.LotsMax()));
 
    return NormalizeDouble(lotSize, 2);
 }
@@ -648,16 +646,10 @@ bool IsMarketOpen()
    if(!SymbolInfoInteger(inpSymbol, SYMBOL_TRADE_MODE))
       return false;
 
-   //--- Check if session is active
-   MqlTradingSession session[];
-   if(!SymbolInfoSession(inpSymbol, 0, session))
-      return true; // Assume open if no session info
-
-   datetime now = TimeCurrent();
-
-   //--- Simple check: avoid weekends
-   int dayOfWeek = TimeDayOfWeek(now);
-   if(dayOfWeek == 6 || dayOfWeek == 7) // Saturday or Sunday
+   //--- Simple check: avoid weekends using MqlDateTime
+   MqlDateTime now;
+   TimeToStruct(TimeCurrent(), now);
+   if(now.day_of_week == 0 || now.day_of_week == 6) // Sunday=0, Saturday=6
       return false;
 
    return true;
@@ -710,16 +702,15 @@ void Log(string message)
 //+------------------------------------------------------------------+
 bool MT5Login(int login, string password, string server)
 {
-   MqlAccountInfo accInfo;
-
-   //--- Try to login
-   if(!AccountLogin(login, password, server))
-      return false;
-
-   //--- Verify login succeeded
-   if(AccountInfoInteger(ACCOUNT_LOGIN) == login)
+   //--- In MQL5, programmatic login is not supported via API.
+   //--- The terminal must be connected to the broker. This function
+   //--- simply verifies the currently logged-in account matches.
+   long currentLogin = AccountInfoInteger(ACCOUNT_LOGIN);
+   if(currentLogin == login)
       return true;
 
+   Print("WARNING: Current account (", currentLogin, ") does not match requested login (", login, "). "
+         "Please login manually in MetaTrader 5.");
    return false;
 }
 
