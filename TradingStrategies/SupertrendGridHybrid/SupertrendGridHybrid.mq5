@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
 //|                   SupertrendGridHybrid.mq5                       |
-//|  Phase 5 — Worst-Case Recovery Grid                             |
-//|  Trigger: Trade1 goes negative by GridStartPts.                 |
-//|  Basket breakeven calculator + dynamic basket TP.               |
+//|  Phase 6 — FINAL COMPLETE EA                                    |
+//|  Global Kill Switches: Daily Drawdown Halt + Friday EOD Close.  |
+//|  All 6 phases active. Production ready for MT5.                 |
 //+------------------------------------------------------------------+
 #property copyright   "Rahul — SupertrendGridHybrid EA"
 #property link        ""
-#property version     "5.00"
-#property description "Supertrend Grid Hybrid EA — Phase 5 of 6"
+#property version     "6.00"
+#property description "Supertrend Grid Hybrid EA — COMPLETE (All 6 Phases)"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -55,6 +55,12 @@ input int    InpGridStepPts     = 50;    // Grid: Distance between grid trades (
 input double InpGridLotMult     = 1.5;   // Grid: Lot multiplier per grid level
 input int    InpBasketTPPts     = 20;    // Grid: Basket TP above breakeven (points)
 
+input group "══ Global Kill Switches (Phase 6) ══"
+input double InpMaxDailyDrawdownPct = 3.0;   // Max Daily Drawdown % (0 = disabled)
+input bool   InpFridayClose         = true;   // Close all on Friday EOD?
+input int    InpFridayCloseHour     = 21;     // Friday Close: Broker Hour (0-23)
+input int    InpFridayCloseMin      = 0;      // Friday Close: Broker Minute (0-59)
+
 input group "══ Magic Numbers ══"
 input long   InpMagic1          = 1000;  // Magic — Main Runner
 input long   InpMagic2          = 2000;  // Magic — Scalp
@@ -98,6 +104,12 @@ bool g_trade1Stage1Active = false; // true once Stage 1 trail is locked (Phase 3
 bool   g_gridActive      = false;  // true when recovery grid is running
 double g_gridLastPrice   = 0.0;    // price of last placed grid order (to step correctly)
 int    g_gridLevel       = 0;      // number of grid orders placed (0 = none yet)
+
+//===================================================================
+//  PHASE 6 — GLOBAL KILL STATE
+//===================================================================
+datetime g_haltUntilDate    = 0;    // UTC date until trading is halted (drawdown trigger)
+bool     g_fridayKillFired  = false; // prevent re-firing on same Friday minute
 
 //===================================================================
 //  TRADE OBJECT (CTrade)
@@ -379,6 +391,133 @@ void OpenMainTrade(bool isBuy)
                   InpLotSize);
       g_trade1Stage1Active = false; // reset stage flag for new trade
    }
+}
+
+
+//+------------------------------------------------------------------+
+//|  CloseAllPositions                                               |
+//|  Closes every open position and deletes all pending orders      |
+//|  on the current symbol. Used by kill switches.                  |
+//+------------------------------------------------------------------+
+void CloseAllPositions(string reason)
+{
+   Print("KILL SWITCH [", reason, "] — Closing all positions and orders.");
+
+   //--- Close all open positions
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL) != _Symbol) continue;
+
+      if(!g_trade.PositionClose(ticket))
+      {
+         PrintFormat("KILL SWITCH CLOSE FAIL: Ticket %d | RetCode: %d | Err: %d | %s",
+                     (int)ticket,
+                     g_trade.ResultRetcode(),
+                     GetLastError(),
+                     g_trade.ResultRetcodeDescription());
+      }
+      else
+      {
+         PrintFormat("KILL SWITCH CLOSED: Ticket %d | Reason: %s", (int)ticket, reason);
+      }
+   }
+
+   //--- Delete all pending orders
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = OrderGetTicket(i);
+      if(ticket == 0) continue;
+      if(OrderGetString(ORDER_SYMBOL) != _Symbol) continue;
+
+      if(!g_trade.OrderDelete(ticket))
+      {
+         PrintFormat("KILL SWITCH ORDER DEL FAIL: Ticket %d | Err: %d",
+                     (int)ticket, GetLastError());
+      }
+   }
+
+   //--- Reset all state flags
+   g_gridActive         = false;
+   g_gridLevel          = 0;
+   g_gridLastPrice      = 0.0;
+   g_trade1Stage1Active = false;
+   g_lastProcessTime    = 0;
+}
+
+
+//+------------------------------------------------------------------+
+//|  GlobalKillSwitchCheck                                           |
+//|  Returns true if any kill condition blocks trading.             |
+//|  Must be called as the VERY FIRST check in OnTick().            |
+//+------------------------------------------------------------------+
+bool GlobalKillSwitchCheck()
+{
+   datetime now = TimeCurrent();
+   MqlDateTime dt;
+   TimeToStruct(now, dt);
+
+   //--- ── Kill 1: Trading halted until next day (drawdown trigger) ──
+   if(g_haltUntilDate > 0 && now < g_haltUntilDate)
+   {
+      // silently return true — no log spam every tick
+      return true;
+   }
+   else if(g_haltUntilDate > 0 && now >= g_haltUntilDate)
+   {
+      g_haltUntilDate = 0; // reset at new day
+      Print("KILL SWITCH: Daily drawdown halt lifted. Resuming trading.");
+   }
+
+   //--- ── Kill 2: Max Daily Drawdown % ──────────────────────────────
+   if(InpMaxDailyDrawdownPct > 0.0)
+   {
+      double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
+      double equity   = AccountInfoDouble(ACCOUNT_EQUITY);
+      double ddPct    = ((balance - equity) / balance) * 100.0;
+
+      if(ddPct >= InpMaxDailyDrawdownPct)
+      {
+         PrintFormat("KILL SWITCH: Daily drawdown %.2f%% >= limit %.2f%%. Closing all.",
+                     ddPct, InpMaxDailyDrawdownPct);
+         CloseAllPositions("MaxDailyDrawdown");
+
+         // Halt until start of next broker day (midnight + 1 second)
+         datetime nextDay = (datetime)(((long)now / 86400 + 1) * 86400 + 1);
+         g_haltUntilDate  = nextDay;
+         PrintFormat("KILL SWITCH: Trading halted until %s.", TimeToString(nextDay));
+         return true;
+      }
+   }
+
+   //--- ── Kill 3: Friday EOD Kill Switch ─────────────────────────────
+   if(InpFridayClose)
+   {
+      // DayOfWeek: 0=Sun,1=Mon,...,5=Fri,6=Sat
+      bool  isFriday    = (dt.day_of_week == 5);
+      bool  isPastTime  = (dt.hour > InpFridayCloseHour)
+                          || (dt.hour == InpFridayCloseHour && dt.min >= InpFridayCloseMin);
+
+      if(isFriday && isPastTime && !g_fridayKillFired)
+      {
+         PrintFormat("KILL SWITCH: Friday EOD at %02d:%02d broker time. Closing all.",
+                     InpFridayCloseHour, InpFridayCloseMin);
+         CloseAllPositions("FridayEOD");
+         g_fridayKillFired = true;
+         return true;
+      }
+
+      // Reset flag on Saturday/Sunday so it fires again next Friday
+      if(dt.day_of_week != 5)
+         g_fridayKillFired = false;
+
+      // If already fired this Friday, keep blocking entry
+      if(g_fridayKillFired)
+         return true;
+   }
+
+   return false; // all checks passed
 }
 
 
@@ -845,14 +984,18 @@ int OnInit()
 
    //--- Startup banner
    PrintFormat("══════════════════════════════════════════════");
-   PrintFormat("  SupertrendGridHybrid EA v4.00 — Phase 4     ");
+   PrintFormat("  SupertrendGridHybrid EA v6.00 — FINAL (All 6 Phases)");
    PrintFormat("  Symbol  : %s | TF: %s",              _Symbol, EnumToString(Period()));
    PrintFormat("  ST ATR  : %d  | Mult: %.1f",         InpStAtrPeriod, InpStMultiplier);
    PrintFormat("  ADX Min : %.0f | Spread Max: %d",     InpAdxMinLevel, InpMaxSpreadPts);
    PrintFormat("  Lot: %.2f | SL: %d pts | TP: %d pts",InpLotSize, InpSL_Points, InpTP_Points);
-   PrintFormat("  S1 Activate: %d pts | Lock: %d pts", InpS1_ActivatePts, InpS1_LockPts);
+   PrintFormat("  S1 Activate: %d pts | S1 Lock: %d pts", InpS1_ActivatePts, InpS1_LockPts);
    PrintFormat("  S2 ATR Trl: %d x %.1f",              InpAtrTrailPeriod, InpAtrTrailMult);
-   PrintFormat("  Scalp Lot: %.2f | SL: %d | TP: %d",  InpScalpLot, InpScalpSL_Pts, InpScalpTP_Pts);
+   PrintFormat("  Scalp: %.2f lots | SL:%d | TP:%d",   InpScalpLot, InpScalpSL_Pts, InpScalpTP_Pts);
+   PrintFormat("  Grid: Trig-%d | Step-%d | Mult-%.1f | BE+%d", InpGridStartPts, InpGridStepPts, InpGridLotMult, InpBasketTPPts);
+   PrintFormat("  Drawdown Kill: %.1f%% | Friday Close: %s @%02d:%02d",
+               InpMaxDailyDrawdownPct, InpFridayClose ? "YES" : "NO",
+               InpFridayCloseHour, InpFridayCloseMin);
    PrintFormat("  Magic 1 : %d  | Magic 2: %d",        (int)InpMagic1, (int)InpMagic2);
    PrintFormat("══════════════════════════════════════════════");
 
@@ -882,6 +1025,10 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
+   //--- ── 0. GLOBAL KILL SWITCH ────────────────────────────────────────
+   //   First check in OnTick — overrides everything if triggered.
+   if(GlobalKillSwitchCheck()) return;
+
    //--- ── 1. DEBOUNCE GATE ─────────────────────────────────────────
    datetime now = TimeCurrent();
    if((int)(now - g_lastProcessTime) < InpDebounceSec)
@@ -952,6 +1099,9 @@ void OnTick()
 }
 
 //+------------------------------------------------------------------+
-//  END OF PHASE 5 — SupertrendGridHybrid.mq5
-//  Next: Phase 6 — Global Kill Switches (Drawdown + Friday EOD)
+//  SUPERTREND GRID HYBRID EA — v6.00 COMPLETE                       |
+//  All 6 Phases Active:                                             |
+//  1. Core indicators + visuals   4. Pyramiding (Magic 2000)        |
+//  2. Filters + entry (Magic 1000) 5. Recovery Grid                 |
+//  3. Multi-stage trailing        6. Drawdown halt + Friday EOD     |
 //+------------------------------------------------------------------+
