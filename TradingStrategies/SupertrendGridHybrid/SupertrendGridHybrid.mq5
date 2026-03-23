@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
 //|                   SupertrendGridHybrid.mq5                       |
-//|  Phase 3 — Multi-Stage Trailing Stop (Magic 1000)               |
-//|  Stage 1: Fixed breakeven+pad lock.                             |
-//|  Stage 2: ATR dynamic trail, never below Stage 1 floor.         |
+//|  Phase 4 — Pyramiding & Trend Scalp (Magic 2000)                |
+//|  Unlock: Trade1 open AND Stage1 active.                         |
+//|  Trigger: Prev candle H/L breakout in trend direction.          |
 //+------------------------------------------------------------------+
 #property copyright   "Rahul — SupertrendGridHybrid EA"
 #property link        ""
-#property version     "3.00"
-#property description "Supertrend Grid Hybrid EA — Phase 3 of 6"
+#property version     "4.00"
+#property description "Supertrend Grid Hybrid EA — Phase 4 of 6"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -43,6 +43,11 @@ input int    InpS1_LockPts      = 10;    // Stage 1: Lock SL at Entry + N points
 
 input group "══ Stage 2 Trail — ATR Dynamic (Phase 3) ══"
 // Uses InpAtrTrailPeriod / InpAtrTrailMult already declared above
+
+input group "══ Scalp Trade (Phase 4) ══"
+input double InpScalpLot        = 0.01;  // Scalp: Lot Size
+input int    InpScalpSL_Pts     = 150;   // Scalp: Stop Loss (points)
+input int    InpScalpTP_Pts     = 300;   // Scalp: Take Profit (points)
 
 input group "══ Magic Numbers ══"
 input long   InpMagic1          = 1000;  // Magic — Main Runner
@@ -365,6 +370,142 @@ void OpenMainTrade(bool isBuy)
 
 
 //+------------------------------------------------------------------+
+//|  CountPositions                                                  |
+//|  Returns the number of open positions matching symbol + magic.  |
+//+------------------------------------------------------------------+
+int CountPositions(long magic)
+{
+   int count = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL) != _Symbol) continue;
+      if(PositionGetInteger(POSITION_MAGIC) != magic)   continue;
+      count++;
+   }
+   return count;
+}
+
+
+//+------------------------------------------------------------------+
+//|  OpenScalpTrade                                                  |
+//|  Pyramiding module — Magic 2000.                                 |
+//|  Conditions to fire:                                            |
+//|   1. Total same-direction positions <= 1 (cap = 2 total).       |
+//|   2. Magic 1000 trade is open.                                   |
+//|   3. Stage 1 trail is active (g_trade1Stage1Active == true).    |
+//|   4. Current candle breaks prev candle High (BUY) or Low (SELL).|
+//+------------------------------------------------------------------+
+void OpenScalpTrade(bool isBuy)
+{
+   //--- Guard 1: Max 2 open positions in same direction (Magic1 + Magic2 combined)
+   ENUM_ORDER_TYPE dir = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+   int sameDir = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL)       != _Symbol) continue;
+      if((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE) != dir) continue;
+      sameDir++;
+   }
+   if(sameDir >= 2)
+   {
+      // max 2 open in same direction reached
+      return;
+   }
+
+   //--- Guard 2: Magic 1000 trade must be open
+   if(!HasOpenPosition(InpMagic1, dir))
+   {
+      Print("SCALP SKIP: Magic 1000 trade not open in same direction.");
+      return;
+   }
+
+   //--- Guard 3: Stage 1 trail must be locked
+   if(!g_trade1Stage1Active)
+   {
+      Print("SCALP SKIP: Stage 1 trail not yet active.");
+      return;
+   }
+
+   //--- Guard 4: Already have a Magic 2000 trade open?
+   if(HasOpenPosition(InpMagic2, dir))
+   {
+      Print("SCALP SKIP: Magic 2000 position already open.");
+      return;
+   }
+
+   //--- Momentum Trigger: price must break prev candle High (BUY) or Low (SELL)
+   double prevHigh = iHigh(_Symbol, PERIOD_CURRENT, 1);
+   double prevLow  = iLow (_Symbol, PERIOD_CURRENT, 1);
+   double ask      = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double bid      = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+
+   if(isBuy  && ask <= prevHigh)
+   {
+      Print("SCALP SKIP: BUY — Ask has not broken prev candle High yet.");
+      return;
+   }
+   if(!isBuy && bid >= prevLow)
+   {
+      Print("SCALP SKIP: SELL — Bid has not broken prev candle Low yet.");
+      return;
+   }
+
+   //--- Build price levels (independent SL/TP for scalp)
+   double price, sl, tp;
+   double slDist = InpScalpSL_Pts * _Point;
+   double tpDist = InpScalpTP_Pts * _Point;
+
+   if(isBuy)
+   {
+      price = ask;
+      sl    = NormalizeDouble(price - slDist, _Digits);
+      tp    = NormalizeDouble(price + tpDist, _Digits);
+   }
+   else
+   {
+      price = bid;
+      sl    = NormalizeDouble(price + slDist, _Digits);
+      tp    = NormalizeDouble(price - tpDist, _Digits);
+   }
+
+   //--- Configure CTrade for Magic 2000
+   g_trade.SetExpertMagicNumber(InpMagic2);
+   g_trade.SetDeviationInPoints(10);
+   g_trade.SetTypeFilling(ORDER_FILLING_IOC);
+
+   bool result = isBuy
+                 ? g_trade.Buy (InpScalpLot, _Symbol, price, sl, tp, "SGH Scalp BUY")
+                 : g_trade.Sell(InpScalpLot, _Symbol, price, sl, tp, "SGH Scalp SELL");
+
+   if(!result)
+   {
+      PrintFormat("SCALP FAILED: %s Magic %d | RetCode: %d | Err: %d | Msg: %s",
+                  isBuy ? "BUY" : "SELL",
+                  (int)InpMagic2,
+                  g_trade.ResultRetcode(),
+                  GetLastError(),
+                  g_trade.ResultRetcodeDescription());
+   }
+   else
+   {
+      PrintFormat("SCALP OK: %s Magic %d | Ticket: %d | Price: %.5f | SL: %.5f | TP: %.5f | Lots: %.2f",
+                  isBuy ? "BUY" : "SELL",
+                  (int)InpMagic2,
+                  (int)g_trade.ResultOrder(),
+                  price, sl, tp,
+                  InpScalpLot);
+   }
+
+   //--- Restore Magic 1000 as default on g_trade
+   g_trade.SetExpertMagicNumber(InpMagic1);
+}
+
+
+//+------------------------------------------------------------------+
 //|  ManageMainTrail                                                 |
 //|  Called on every tick. Manages Stage 1 and Stage 2 trailing     |
 //|  for the open Magic 1000 position.                              |
@@ -529,13 +670,14 @@ int OnInit()
 
    //--- Startup banner
    PrintFormat("══════════════════════════════════════════════");
-   PrintFormat("  SupertrendGridHybrid EA v3.00 — Phase 3     ");
+   PrintFormat("  SupertrendGridHybrid EA v4.00 — Phase 4     ");
    PrintFormat("  Symbol  : %s | TF: %s",              _Symbol, EnumToString(Period()));
    PrintFormat("  ST ATR  : %d  | Mult: %.1f",         InpStAtrPeriod, InpStMultiplier);
    PrintFormat("  ADX Min : %.0f | Spread Max: %d",     InpAdxMinLevel, InpMaxSpreadPts);
    PrintFormat("  Lot: %.2f | SL: %d pts | TP: %d pts",InpLotSize, InpSL_Points, InpTP_Points);
    PrintFormat("  S1 Activate: %d pts | Lock: %d pts", InpS1_ActivatePts, InpS1_LockPts);
    PrintFormat("  S2 ATR Trl: %d x %.1f",              InpAtrTrailPeriod, InpAtrTrailMult);
+   PrintFormat("  Scalp Lot: %.2f | SL: %d | TP: %d",  InpScalpLot, InpScalpSL_Pts, InpScalpTP_Pts);
    PrintFormat("  Magic 1 : %d  | Magic 2: %d",        (int)InpMagic1, (int)InpMagic2);
    PrintFormat("══════════════════════════════════════════════");
 
@@ -619,13 +761,16 @@ void OnTick()
    //--- ── 8. MANAGE TRAILING STOP (Magic 1000) ─────────────────────
    ManageMainTrail();
 
-   //--- ── 9. UPDATE TRACKING STATE ────────────────────────────────
+   //--- ── 9. PYRAMIDING: Scalp Trade (Magic 2000) ──────────────────
+   OpenScalpTrade(bullFlip);
+
+   //--- ── 10. UPDATE TRACKING STATE ──────────────────────────────
    g_lastLabelBar    = barTime;
    g_lastLabelDir    = flipDir;
    g_lastProcessTime = now;
 }
 
 //+------------------------------------------------------------------+
-//  END OF PHASE 3 — SupertrendGridHybrid.mq5
-//  Next: Phase 4 — Pyramiding & Scalp (Magic 2000)
+//  END OF PHASE 4 — SupertrendGridHybrid.mq5
+//  Next: Phase 5 — Worst-Case Recovery Grid (Magic 1000)
 //+------------------------------------------------------------------+
