@@ -36,8 +36,8 @@ input double   inpRewardToRisk      = 1.0;              // R:R target
 input int      inpSwingLookback     = 5;                // Swing lookback
 input int      inpEmaPeriod         = 50;               // EMA period
 input int      inpRsiPeriod         = 14;               // RSI period
-input double   inpRsiOverbought     = 55.0;             // RSI overbought
-input double   inpRsiOversold       = 45.0;             // RSI oversold
+input double   inpRsiOverbought     = 60.0;             // RSI overbought (raise to get more signals)
+input double   inpRsiOversold       = 40.0;             // RSI oversold  (lower to get more signals)
 
 //--- AI Integration
 input bool     inpEnableAI          = true;             // Enable AI confirmation
@@ -340,17 +340,18 @@ string BuildMarketData(MqlTick &tick, MqlRates &rates15M[],
 //+------------------------------------------------------------------+
 void WriteAIRequest(string marketData)
 {
-   int handle = FileOpen("ai_request.txt", FILE_WRITE | FILE_TXT, ",");
+   // FILE_COMMON writes to the shared Common\Files folder that ai_bridge.py watches
+   int handle = FileOpen("ai_request.txt", FILE_WRITE | FILE_TXT | FILE_COMMON);
    if(handle == INVALID_HANDLE)
    {
-      Log("ERROR: Failed to open request file");
+      Log("ERROR: Failed to open request file. Error: " + IntegerToString(GetLastError()));
       return;
    }
 
-   FileWrite(handle, marketData);
+   FileWriteString(handle, marketData);
    FileClose(handle);
 
-   Log("AI request written to file");
+   Log("AI request written to Common\\Files\\ai_request.txt");
 }
 
 //+------------------------------------------------------------------+
@@ -361,7 +362,7 @@ void CheckAIResponse()
    if(!MyFileExists("ai_response.txt"))
       return;
 
-   int handle = FileOpen("ai_response.txt", FILE_READ | FILE_TXT, ",");
+   int handle = FileOpen("ai_response.txt", FILE_READ | FILE_TXT | FILE_COMMON);
    if(handle == INVALID_HANDLE)
       return;
 
@@ -399,8 +400,8 @@ void CheckAIResponse()
    aiResponseTime = TimeCurrent();
    aiResponseReceived = true;
 
-   // Cleanup response file
-   FileDelete("ai_response.txt");
+   // Cleanup response file from Common folder
+   FileDelete("ai_response.txt", FILE_COMMON);
 
    Log("AI response parsed: " + signal + " (" + IntegerToString(confidence) + "%)");
 }
@@ -440,22 +441,17 @@ bool ValidateAISignal(int smcSignal)
 //+------------------------------------------------------------------+
 void CheckAIServiceStatus()
 {
-   // Check if error file exists
    if(MyFileExists("ai_error.txt"))
    {
-      int handle = FileOpen("ai_error.txt", FILE_READ | FILE_TXT);
+      int handle = FileOpen("ai_error.txt", FILE_READ | FILE_TXT | FILE_COMMON);
       if(handle != INVALID_HANDLE)
       {
          string errorLine = FileReadString(handle);
          Log("AI Bridge Error: " + errorLine);
          FileClose(handle);
-         FileDelete("ai_error.txt");
+         FileDelete("ai_error.txt", FILE_COMMON);
       }
       aiServiceRunning = false;
-   }
-   else
-   {
-      aiServiceRunning = true;
    }
 }
 
@@ -464,7 +460,8 @@ void CheckAIServiceStatus()
 //+------------------------------------------------------------------+
 bool MyFileExists(string filename)
 {
-   int handle = FileOpen(filename, FILE_READ | FILE_TXT);
+   // Always check in the Common folder (shared with ai_bridge.py)
+   int handle = FileOpen(filename, FILE_READ | FILE_TXT | FILE_COMMON);
    if(handle == INVALID_HANDLE)
       return false;
    FileClose(handle);
