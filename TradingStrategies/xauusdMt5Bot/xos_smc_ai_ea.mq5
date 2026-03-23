@@ -3,7 +3,7 @@
 //|                      XAUUSD SMC EA with AI Confirmation          |
 //+------------------------------------------------------------------+
 #property copyright "XOS SMC AI Bot"
-#property version   "2.01"  // Fixed: symbol name conflict, array params, TimeDay function
+#property version   "2.02"  // Fixed: VolumeMin/Max/Step -> LotsMin/Max/Step, MqlDateTime for weekend check, inpMagicNumber type
 #property strict
 
 //--- Include standard libraries
@@ -302,7 +302,7 @@ void OnTimer()
 //+------------------------------------------------------------------+
 //| Build Market Data String for AI                                  |
 //+------------------------------------------------------------------+
-string BuildMarketData(MqlTick &tick, MqlRates rates15M[],
+string BuildMarketData(MqlTick &tick, MqlRates &rates15M[],
                        double ema, double rsi, double atr, int trend)
 {
    string data = "";
@@ -371,17 +371,17 @@ void CheckAIResponse()
       int colonPos = StringFind(line, ":");
 
       if(StringFind(line, "SIGNAL:") >= 0)
-         signal = StringTrimRight(StringSubstr(line, colonPos + 1));
+         signal = StringTrimRight(StringSubstr(line, colonPos + 1, -1));
       else if(StringFind(line, "CONFIDENCE:") >= 0)
-         confidence = (int)StringToDouble(StringTrimRight(StringSubstr(line, colonPos + 1)));
+         confidence = (int)StringToDouble(StringTrimRight(StringSubstr(line, colonPos + 1, -1)));
       else if(StringFind(line, "REASONING:") >= 0)
-         reasoning = StringTrimRight(StringSubstr(line, colonPos + 1));
+         reasoning = StringTrimRight(StringSubstr(line, colonPos + 1, -1));
       else if(StringFind(line, "SL:") >= 0)
-         sl = StringToDouble(StringTrimRight(StringSubstr(line, colonPos + 1)));
+         sl = StringToDouble(StringTrimRight(StringSubstr(line, colonPos + 1, -1)));
       else if(StringFind(line, "TP:") >= 0)
-         tp = StringToDouble(StringTrimRight(StringSubstr(line, colonPos + 1)));
+         tp = StringToDouble(StringTrimRight(StringSubstr(line, colonPos + 1, -1)));
       else if(StringFind(line, "RISK:") >= 0)
-         risk = StringTrimRight(StringSubstr(line, colonPos + 1));
+         risk = StringTrimRight(StringSubstr(line, colonPos + 1, -1));
    }
 
    FileClose(handle);
@@ -539,7 +539,7 @@ void UpdateSwingPoints()
 //+------------------------------------------------------------------+
 //| Get Trend Direction                                              |
 //+------------------------------------------------------------------+
-int GetTrendDirection(MqlRates rates[], double ema)
+int GetTrendDirection(MqlRates &rates[], double ema)
 {
    double lastClose = rates[0].close;
 
@@ -554,7 +554,7 @@ int GetTrendDirection(MqlRates rates[], double ema)
 //+------------------------------------------------------------------+
 //| Check for Sweep Setups                                           |
 //+------------------------------------------------------------------+
-bool CheckSweepSetups(MqlTick &tick, MqlRates rates1M[], int trend, double rsi)
+bool CheckSweepSetups(MqlTick &tick, MqlRates &rates1M[], int trend, double rsi)
 {
    int ratesCount = ArraySize(rates1M);
    if(ratesCount < 2)
@@ -596,7 +596,7 @@ bool CheckSweepSetups(MqlTick &tick, MqlRates rates1M[], int trend, double rsi)
 //+------------------------------------------------------------------+
 //| Execute SMC Trade                                                |
 //+------------------------------------------------------------------+
-void ExecuteSMCTrade(MqlTick &tick, MqlRates rates1M[])
+void ExecuteSMCTrade(MqlTick &tick, MqlRates &rates1M[])
 {
    double candleHigh = rates1M[1].high;
    double candleLow = rates1M[1].low;
