@@ -31,9 +31,9 @@ MT5_FILES_PATH = os.path.join(
     "Files"
 )
 
-# Ollama configuration
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2")  # or "mistral", "codellama", etc.
+# Ollama configuration (supports local or cloud)
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "https://cloud.ollama.com")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "nemotron-3-super")  # or "llama3.2", "mistral", "codellama", etc.
 
 # File names
 REQUEST_FILE = "ai_request.txt"
