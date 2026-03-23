@@ -3,7 +3,7 @@
 //|                      XAUUSD SMC EA with AI Confirmation          |
 //+------------------------------------------------------------------+
 #property copyright "XOS SMC AI Bot"
-#property version   "2.02"  // Fixed: VolumeMin/Max/Step -> LotsMin/Max/Step, MqlDateTime for weekend check, inpMagicNumber type
+#property version   "2.03"  // Migrated from Anthropic Claude to Ollama local LLM
 #property strict
 
 //--- Include standard libraries
