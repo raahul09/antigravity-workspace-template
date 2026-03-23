@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
 //|                   SupertrendGridHybrid.mq5                       |
-//|  Phase 2 — Filters & Main Entry (Magic 1000)                    |
-//|  Builds on Phase 1: ADX filter, Spread guard, Margin guard,     |
-//|  position checker, and OrderSend with GetLastError logging.     |
+//|  Phase 3 — Multi-Stage Trailing Stop (Magic 1000)               |
+//|  Stage 1: Fixed breakeven+pad lock.                             |
+//|  Stage 2: ATR dynamic trail, never below Stage 1 floor.         |
 //+------------------------------------------------------------------+
 #property copyright   "Rahul — SupertrendGridHybrid EA"
 #property link        ""
-#property version     "2.00"
-#property description "Supertrend Grid Hybrid EA — Phase 2 of 6"
+#property version     "3.00"
+#property description "Supertrend Grid Hybrid EA — Phase 3 of 6"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -36,6 +36,13 @@ input int    InpMaxSpreadPts    = 20;    // Max Allowed Spread (points)
 input double InpMinFreeMargin   = 100.0; // Min Free Margin (USD)
 input int    InpSL_Points       = 200;   // Stop Loss (points)
 input int    InpTP_Points       = 400;   // Take Profit (points)
+
+input group "══ Stage 1 Trail — Fixed Pad (Phase 3) ══"
+input int    InpS1_ActivatePts  = 50;    // Stage 1: Activate when profit ≥ N points
+input int    InpS1_LockPts      = 10;    // Stage 1: Lock SL at Entry + N points
+
+input group "══ Stage 2 Trail — ATR Dynamic (Phase 3) ══"
+// Uses InpAtrTrailPeriod / InpAtrTrailMult already declared above
 
 input group "══ Magic Numbers ══"
 input long   InpMagic1          = 1000;  // Magic — Main Runner
@@ -358,6 +365,134 @@ void OpenMainTrade(bool isBuy)
 
 
 //+------------------------------------------------------------------+
+//|  ManageMainTrail                                                 |
+//|  Called on every tick. Manages Stage 1 and Stage 2 trailing     |
+//|  for the open Magic 1000 position.                              |
+//|                                                                  |
+//|  Stage 1: When floating profit ≥ InpS1_ActivatePts,            |
+//|           move SL to (EntryPrice +/- InpS1_LockPts * _Point).  |
+//|           Sets g_trade1Stage1Active = true.                     |
+//|  Stage 2: Once Stage 1 active, trail SL using ATR * Multiplier. |
+//|           SL only moves TOWARD profit; never below Stage 1 lock. |
+//+------------------------------------------------------------------+
+void ManageMainTrail()
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL)  != _Symbol)    continue;
+      if(PositionGetInteger(POSITION_MAGIC)  != InpMagic1)  continue;
+
+      ENUM_POSITION_TYPE posType    = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      double             openPrice  = PositionGetDouble(POSITION_PRICE_OPEN);
+      double             currentSL  = PositionGetDouble(POSITION_SL);
+      double             currentTP  = PositionGetDouble(POSITION_TP);
+      double             currentBid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+      double             currentAsk = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+
+      double s1LockPts    = InpS1_LockPts    * _Point;
+      double s1ActivatePts = InpS1_ActivatePts * _Point;
+
+      //--- ── STAGE 1: Fixed Breakeven + Pad Lock ─────────────────────
+      if(!g_trade1Stage1Active)
+      {
+         bool s1Triggered = false;
+         double requiredSL = 0.0;
+
+         if(posType == POSITION_TYPE_BUY)
+         {
+            // Profit in points = Bid - OpenPrice
+            if((currentBid - openPrice) >= s1ActivatePts)
+            {
+               requiredSL  = NormalizeDouble(openPrice + s1LockPts, _Digits);
+               s1Triggered = (requiredSL > currentSL + _Point); // only raise, never lower
+            }
+         }
+         else // SELL
+         {
+            // Profit in points = OpenPrice - Ask
+            if((openPrice - currentAsk) >= s1ActivatePts)
+            {
+               requiredSL  = NormalizeDouble(openPrice - s1LockPts, _Digits);
+               s1Triggered = (requiredSL < currentSL - _Point || currentSL == 0); // only lower, never raise
+            }
+         }
+
+         if(s1Triggered)
+         {
+            g_trade.SetExpertMagicNumber(InpMagic1);
+            if(g_trade.PositionModify(ticket, requiredSL, currentTP))
+            {
+               g_trade1Stage1Active = true;
+               PrintFormat("TRAIL STAGE 1 LOCKED: Ticket %d | SL moved to %.5f (Entry+%d pts)",
+                           (int)ticket, requiredSL, InpS1_LockPts);
+            }
+            else
+            {
+               PrintFormat("TRAIL STAGE 1 FAIL: Ticket %d | RetCode: %d | Err: %d | %s",
+                           (int)ticket,
+                           g_trade.ResultRetcode(),
+                           GetLastError(),
+                           g_trade.ResultRetcodeDescription());
+            }
+         }
+         return; // Stage 1 not yet locked — do not run Stage 2
+      }
+
+      //--- ── STAGE 2: ATR Dynamic Trail ──────────────────────────────
+      //   Only executes when Stage 1 is already locked.
+      //   Reads live ATR from handle (bar[1] = completed bar).
+      double atrBuf[];
+      ArraySetAsSeries(atrBuf, true);
+      if(CopyBuffer(g_atrTrlHandle, 0, 1, 1, atrBuf) < 1)
+      {
+         PrintFormat("TRAIL STAGE 2: ATR CopyBuffer failed. Err: %d", GetLastError());
+         return;
+      }
+      double atrVal      = atrBuf[0] * InpAtrTrailMult;
+      double stage1Floor = 0.0;  // Minimum SL allowed (Stage 1 lock price)
+      double newSL       = 0.0;
+      bool   shouldModify = false;
+
+      if(posType == POSITION_TYPE_BUY)
+      {
+         stage1Floor = NormalizeDouble(openPrice + s1LockPts, _Digits);
+         newSL       = NormalizeDouble(currentBid - atrVal,   _Digits);
+         // Only move SL higher AND never below Stage 1 floor
+         newSL       = MathMax(newSL, stage1Floor);
+         shouldModify = (newSL > currentSL + _Point);
+      }
+      else // SELL
+      {
+         stage1Floor = NormalizeDouble(openPrice - s1LockPts, _Digits);
+         newSL       = NormalizeDouble(currentAsk + atrVal,   _Digits);
+         // Only move SL lower AND never above Stage 1 floor
+         newSL       = MathMin(newSL, stage1Floor);
+         shouldModify = (newSL < currentSL - _Point || currentSL == 0);
+      }
+
+      if(shouldModify)
+      {
+         if(g_trade.PositionModify(ticket, newSL, currentTP))
+         {
+            PrintFormat("TRAIL STAGE 2: Ticket %d | SL → %.5f (ATR %.5f x %.1f)",
+                        (int)ticket, newSL, atrBuf[0], InpAtrTrailMult);
+         }
+         else
+         {
+            PrintFormat("TRAIL STAGE 2 FAIL: Ticket %d | RetCode: %d | Err: %d | %s",
+                        (int)ticket,
+                        g_trade.ResultRetcode(),
+                        GetLastError(),
+                        g_trade.ResultRetcodeDescription());
+         }
+      }
+   } // end for
+}
+
+
+//+------------------------------------------------------------------+
 //|  OnInit                                                          |
 //+------------------------------------------------------------------+
 int OnInit()
@@ -394,12 +529,14 @@ int OnInit()
 
    //--- Startup banner
    PrintFormat("══════════════════════════════════════════════");
-   PrintFormat("  SupertrendGridHybrid EA v2.00 — Phase 2     ");
-   PrintFormat("  Symbol  : %s | TF: %s",           _Symbol, EnumToString(Period()));
-   PrintFormat("  ST ATR  : %d  | Mult: %.1f",      InpStAtrPeriod, InpStMultiplier);
-   PrintFormat("  ADX Min : %.0f | Spread Max: %d",  InpAdxMinLevel, InpMaxSpreadPts);
-   PrintFormat("  Lot: %.2f | SL: %d pts | TP: %d pts", InpLotSize, InpSL_Points, InpTP_Points);
-   PrintFormat("  Magic 1 : %d  | Magic 2: %d",     (int)InpMagic1, (int)InpMagic2);
+   PrintFormat("  SupertrendGridHybrid EA v3.00 — Phase 3     ");
+   PrintFormat("  Symbol  : %s | TF: %s",              _Symbol, EnumToString(Period()));
+   PrintFormat("  ST ATR  : %d  | Mult: %.1f",         InpStAtrPeriod, InpStMultiplier);
+   PrintFormat("  ADX Min : %.0f | Spread Max: %d",     InpAdxMinLevel, InpMaxSpreadPts);
+   PrintFormat("  Lot: %.2f | SL: %d pts | TP: %d pts",InpLotSize, InpSL_Points, InpTP_Points);
+   PrintFormat("  S1 Activate: %d pts | Lock: %d pts", InpS1_ActivatePts, InpS1_LockPts);
+   PrintFormat("  S2 ATR Trl: %d x %.1f",              InpAtrTrailPeriod, InpAtrTrailMult);
+   PrintFormat("  Magic 1 : %d  | Magic 2: %d",        (int)InpMagic1, (int)InpMagic2);
    PrintFormat("══════════════════════════════════════════════");
 
    return INIT_SUCCEEDED;
@@ -429,11 +566,13 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    //--- ── 1. DEBOUNCE GATE ─────────────────────────────────────────
-   //   Prevents CPU spike from processing every single tick.
-   //   The bot "sleeps" for InpDebounceSec seconds between evaluations.
    datetime now = TimeCurrent();
    if((int)(now - g_lastProcessTime) < InpDebounceSec)
+   {
+      // Even within debounce, run trail manager every tick for precision
+      ManageMainTrail();
       return;
+   }
 
    //--- ── 2. MINIMUM BARS GUARD ────────────────────────────────────
    if(iBars(_Symbol, PERIOD_CURRENT) < InpStAtrPeriod + 10)
@@ -477,13 +616,16 @@ void OnTick()
    //--- ── 7. EXECUTE MAIN TRADE (Magic 1000) ───────────────────────
    OpenMainTrade(bullFlip);
 
-   //--- ── 8. UPDATE TRACKING STATE ────────────────────────────────
+   //--- ── 8. MANAGE TRAILING STOP (Magic 1000) ─────────────────────
+   ManageMainTrail();
+
+   //--- ── 9. UPDATE TRACKING STATE ────────────────────────────────
    g_lastLabelBar    = barTime;
    g_lastLabelDir    = flipDir;
    g_lastProcessTime = now;
 }
 
 //+------------------------------------------------------------------+
-//  END OF PHASE 2 — SupertrendGridHybrid.mq5
-//  Next: Phase 3 — Multi-Stage Trailing (Magic 1000)
+//  END OF PHASE 3 — SupertrendGridHybrid.mq5
+//  Next: Phase 4 — Pyramiding & Scalp (Magic 2000)
 //+------------------------------------------------------------------+
