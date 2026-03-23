@@ -78,6 +78,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Separate conversation logger — logs every full request + response
+conv_logger = logging.getLogger("conversations")
+conv_logger.setLevel(logging.DEBUG)
+_conv_handler = logging.FileHandler("ai_conversations.log", encoding="utf-8")
+_conv_handler.setFormatter(logging.Formatter("%(asctime)s\n%(message)s"))
+conv_logger.addHandler(_conv_handler)
+conv_logger.propagate = False  # don't double-log to console
+
 
 # === Ollama API Client ===
 
@@ -294,6 +302,15 @@ class MQL5FileHandler(FileSystemEventHandler):
                 self.write_error("Empty or invalid request data")
                 return
 
+            # Log the full request to conversation log
+            conv_logger.info(
+                "=" * 60 + "\n"
+                "📤 EA → AI REQUEST\n"
+                + "=" * 60 + "\n"
+                + market_data.strip()
+                + "\n"
+            )
+
             # Analyze with Ollama
             logger.info("Calling Ollama API...")
             start_time = time.time()
@@ -302,7 +319,7 @@ class MQL5FileHandler(FileSystemEventHandler):
             logger.info(f"Ollama responded in {elapsed:.2f}s")
 
             # Write response
-            self.write_response(decision)
+            self.write_response(decision, elapsed)
 
             # Cleanup request file
             try:
@@ -318,7 +335,7 @@ class MQL5FileHandler(FileSystemEventHandler):
         finally:
             self.processing = False
 
-    def write_response(self, decision: dict):
+    def write_response(self, decision: dict, elapsed: float = 0.0):
         """Write AI decision to response file for MQL5 to read."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -335,7 +352,18 @@ RISK: {decision['risk']}
         with open(self.response_path, 'w', encoding='utf-8') as f:
             f.write(response_text)
 
-        logger.info(f"Response written: {decision['signal']} ({decision['confidence']}% confidence)")
+        result_line = f"{decision['signal']} ({decision['confidence']}% confidence)"
+        logger.info(f"Response written: {result_line} in {elapsed:.1f}s")
+
+        # Log the full response to conversation log
+        conv_logger.info(
+            "=" * 60 + "\n"
+            f"🤖 AI → EA RESPONSE  [{elapsed:.1f}s]\n"
+            + "=" * 60 + "\n"
+            + response_text.strip()
+            + "\n"
+            + "=" * 60 + "\n"
+        )
 
     def write_error(self, error_message: str):
         """Write error to error file."""

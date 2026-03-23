@@ -236,9 +236,13 @@ void OnTick()
    if(inpEnableAI && smcSignal != 0)
    {
       string marketData = BuildMarketData(tick, rates15M, ema, rsi, atr, trendDirection);
-      WriteAIRequest(marketData);
 
-      Log("AI request sent, waiting for response...");
+      Log("=== EA >>> AI REQUEST ===");
+      Log(marketData);
+      Log("========================");
+
+      WriteAIRequest(marketData);
+      Log("AI request written, waiting up to " + IntegerToString(inpAITimeoutSec) + "s for response...");
 
       // Wait for AI response with timeout
       datetime startTime = TimeCurrent();
@@ -252,8 +256,13 @@ void OnTick()
 
       if(aiResponseReceived)
       {
-         Log("AI Response: " + aiSignal + " (Confidence: " + IntegerToString(aiConfidence) + "%)");
-         Log("Reasoning: " + aiReasoning);
+         Log("=== AI >>> EA RESPONSE ===");
+         Log("Signal    : " + aiSignal);
+         Log("Confidence: " + IntegerToString(aiConfidence) + "%");
+         Log("Reasoning : " + aiReasoning);
+         Log("SL Price  : " + DoubleToString(aiSL, _Digits));
+         Log("TP Price  : " + DoubleToString(aiTP, _Digits));
+         Log("==========================");
 
          // Only trade if AI agrees and confidence is high enough
          bool aiAgrees = ValidateAISignal(smcSignal);
@@ -270,7 +279,7 @@ void OnTick()
       }
       else
       {
-         Log("WARNING: AI response timeout - proceeding with SMC signal only");
+         Log("WARNING: AI response timeout after " + IntegerToString(inpAITimeoutSec) + "s - trading on SMC signal alone");
       }
    }
 
