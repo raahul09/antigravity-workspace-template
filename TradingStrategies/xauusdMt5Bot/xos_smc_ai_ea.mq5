@@ -23,7 +23,7 @@ CSymbolInfo    sym;
 //+------------------------------------------------------------------+
 
 //--- Account & Connection
-input int      inpMagicNumber       = 777888;           // Magic number
+input ulong    inpMagicNumber       = 777888;           // Magic number
 input string   inpSymbol            = "XAUUSD";         // Trading symbol
 input bool     inpUseAutoLogin      = true;             // Use terminal session
 
@@ -163,7 +163,7 @@ void OnDeinit(const int reason)
    if(inpShowChartComments) Comment("");
 
    Log("=== XOS SMC AI EA Deinitialized ===");
-   Log("Reason: " + EnumToString(reason));
+   Log("Reason: " + IntegerToString(reason));
 }
 
 //+------------------------------------------------------------------+
@@ -696,9 +696,9 @@ double CalculateLotSize(double slDistance)
 
    double tickValue = sym.TickValue();
    double tickSize = sym.TickSize();
-   double volumeMin = sym.VolumeMin();
-   double volumeMax = sym.VolumeMax();
-   double volumeStep = sym.VolumeStep();
+   double volumeMin = sym.LotsMin();
+   double volumeMax = sym.LotsMax();
+   double volumeStep = sym.LotsStep();
 
    if(slDistance <= 0 || tickSize <= 0)
       return volumeMin;
@@ -768,10 +768,10 @@ void UpdateTrailingStops()
 //+------------------------------------------------------------------+
 bool IsMarketOpen()
 {
-   datetime now = TimeCurrent();
-   int dayOfWeek = TimeDay(now);  // MQL5: 1=Monday, 7=Sunday
-
-   if(dayOfWeek == 6 || dayOfWeek == 7)  // Saturday or Sunday
+   //--- Use MqlDateTime to get day-of-week (Sunday=0, Saturday=6)
+   MqlDateTime now;
+   TimeToStruct(TimeCurrent(), now);
+   if(now.day_of_week == 0 || now.day_of_week == 6)
       return false;
 
    if(!SymbolInfoInteger(inpSymbol, SYMBOL_TRADE_MODE))
