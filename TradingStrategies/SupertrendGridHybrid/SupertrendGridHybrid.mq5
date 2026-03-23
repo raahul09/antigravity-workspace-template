@@ -20,7 +20,6 @@ input group "══ Supertrend Settings ══" input int InpStAtrPeriod =
 input double InpStMultiplier = 3.0; // ST: Multiplier
 
 input group "══ ADX Filter ══" input int InpAdxPeriod = 14; // ADX Period
-input double InpAdxMinLevel = 25.0; // ADX Minimum Level (trend strength)
 
 input group "══ ATR Trailing Stop (Phase 3+) ══" input int InpAtrTrailPeriod =
     14;                             // ATR Trail: Period
