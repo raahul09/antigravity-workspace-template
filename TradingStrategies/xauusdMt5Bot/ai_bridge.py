@@ -24,15 +24,38 @@ from watchdog.events import FileSystemEventHandler
 
 # === Configuration ===
 
-# Path to MT5 Files folder (adjust to your MT5 installation)
-MT5_FILES_PATH = os.path.join(
-    os.environ.get("MT5_PATH", "C:\\Program Files\\MetaTrader 5"),
-    "MQL5",
-    "Files"
-)
+# Path to MT5 Files folder.
+# Priority: env var > auto-discovery > Common fallback
+def _find_mt5_files_path() -> str:
+    """
+    Auto-discover the MT5 terminal data path where FileOpen() writes.
+    MQL5 FileOpen() writes to: AppData\\Roaming\\MetaQuotes\\Terminal\\<HASH>\\MQL5\\Files
+    The Common folder is AppData\\Roaming\\MetaQuotes\\Terminal\\Common\\Files
+    We prefer the Common folder (works across all terminals) but also check
+    individual terminal folders as fallback.
+    """
+    appdata = os.environ.get("APPDATA", "")
+    base = os.path.join(appdata, "MetaQuotes", "Terminal")
+
+    # Common folder - works when EA uses FILE_COMMON flag (recommended)
+    common = os.path.join(base, "Common", "Files")
+    if os.path.isdir(common):
+        return common
+
+    # Fall back to first terminal-specific folder found
+    if os.path.isdir(base):
+        for entry in os.listdir(base):
+            candidate = os.path.join(base, entry, "MQL5", "Files")
+            if os.path.isdir(candidate):
+                return candidate
+
+    # Last resort: Common folder (may not exist yet, will be created)
+    return common
+
+MT5_FILES_PATH = os.environ.get("MT5_FILES_PATH") or _find_mt5_files_path()
 
 # Ollama configuration (supports local or cloud)
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "https://cloud.ollama.com")
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434/")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "nemotron-3-super")  # or "llama3.2", "mistral", "codellama", etc.
 
 # File names

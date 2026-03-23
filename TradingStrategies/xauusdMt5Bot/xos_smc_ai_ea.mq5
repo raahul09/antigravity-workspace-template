@@ -129,18 +129,22 @@ int OnInit()
    ArraySetAsSeries(swingHighsTime, true);
    ArraySetAsSeries(swingLowsTime, true);
 
-   //--- Setup file paths
-   string mt5Path = TerminalInfoString(TERMINAL_PATH);
-   requestFilePath = mt5Path + "\\MQL5\\Files\\ai_request.txt";
-   responseFilePath = mt5Path + "\\MQL5\\Files\\ai_response.txt";
-   errorFilePath = mt5Path + "\\MQL5\\Files\\ai_error.txt";
+   //--- Setup file paths (must match where MQL5 FileOpen() writes)
+   //    FileOpen() uses TERMINAL_DATA_PATH\MQL5\Files by default
+   string dataPath = TerminalInfoString(TERMINAL_DATA_PATH);
+   requestFilePath  = dataPath + "\\MQL5\\Files\\ai_request.txt";
+   responseFilePath = dataPath + "\\MQL5\\Files\\ai_response.txt";
+   errorFilePath    = dataPath + "\\MQL5\\Files\\ai_error.txt";
 
-   Log("File paths initialized");
+   Log("File paths initialized (DATA PATH)");
    Log("  Request: " + requestFilePath);
    Log("  Response: " + responseFilePath);
 
    //--- Create timer (1 second interval)
    EventSetTimer(1);
+
+   //--- Mark as initialized (MUST be set for OnTick to proceed)
+   mt5Initialized = true;
 
    Log("=== XOS SMC AI EA Initialized ===");
    Log("Symbol: " + inpSymbol + " | Risk: " + DoubleToString(inpRiskPercent, 2) + "%");
@@ -225,11 +229,11 @@ void OnTick()
    //--- Get trend direction
    int trendDirection = GetTrendDirection(rates15M, ema);
 
-   //--- Check for SMC sweep setups
-   bool smcSignal = CheckSweepSetups(tick, rates1M, trendDirection, rsi);
+   //--- Check for SMC sweep setups (1=buy, -1=sell, 0=none)
+   int smcSignal = CheckSweepSetups(tick, rates1M, trendDirection, rsi);
 
    //--- AI Integration: Request analysis if SMC signal detected
-   if(inpEnableAI && smcSignal)
+   if(inpEnableAI && smcSignal != 0)
    {
       string marketData = BuildMarketData(tick, rates15M, ema, rsi, atr, trendDirection);
       WriteAIRequest(marketData);
@@ -251,7 +255,7 @@ void OnTick()
          Log("AI Response: " + aiSignal + " (Confidence: " + IntegerToString(aiConfidence) + "%)");
          Log("Reasoning: " + aiReasoning);
 
-         // Only trade if AI agrees with SMC signal and confidence is high enough
+         // Only trade if AI agrees and confidence is high enough
          bool aiAgrees = ValidateAISignal(smcSignal);
 
          if(aiAgrees)
@@ -271,9 +275,9 @@ void OnTick()
    }
 
    //--- Execute trade if SMC signal confirmed
-   if(smcSignal)
+   if(smcSignal != 0)
    {
-      ExecuteSMCTrade(tick, rates1M);
+      ExecuteSMCTrade(tick, rates1M, smcSignal);
    }
 
    //--- Update trailing stops
@@ -404,7 +408,7 @@ void CheckAIResponse()
 //+------------------------------------------------------------------+
 //| Validate AI Signal Against SMC                                   |
 //+------------------------------------------------------------------+
-bool ValidateAISignal(bool smcBuySignal)
+bool ValidateAISignal(int smcSignal)
 {
    if(aiSignal == "")
       return false;
@@ -421,10 +425,10 @@ bool ValidateAISignal(bool smcBuySignal)
       return false;
    }
 
-   // Check if AI agrees with SMC direction
-   if(smcBuySignal && aiSignal == "BUY")
+   // Check if AI agrees with SMC direction (1=buy, -1=sell)
+   if(smcSignal == 1 && aiSignal == "BUY")
       return true;
-   if(!smcBuySignal && aiSignal == "SELL")
+   if(smcSignal == -1 && aiSignal == "SELL")
       return true;
 
    Log("AI signal disagrees with SMC: AI=" + aiSignal);
@@ -551,20 +555,18 @@ int GetTrendDirection(MqlRates &rates[], double ema)
       return 0;   // Neutral
 }
 
-//+------------------------------------------------------------------+
-//| Check for Sweep Setups                                           |
-//+------------------------------------------------------------------+
-bool CheckSweepSetups(MqlTick &tick, MqlRates &rates1M[], int trend, double rsi)
+// Returns: 1=buy signal, -1=sell signal, 0=no signal
+int CheckSweepSetups(MqlTick &tick, MqlRates &rates1M[], int trend, double rsi)
 {
    int ratesCount = ArraySize(rates1M);
    if(ratesCount < 2)
-      return false;
+      return 0;
 
-   double candleHigh = rates1M[1].high;
-   double candleLow = rates1M[1].low;
+   double candleHigh  = rates1M[1].high;
+   double candleLow   = rates1M[1].low;
    double candleClose = rates1M[1].close;
 
-   // Check bearish sweep
+   // Check bearish sweep (sell)
    if(trend <= 0 && rsi > inpRsiOverbought)
    {
       for(int i = 0; i < swingHighsCount; i++)
@@ -572,12 +574,12 @@ bool CheckSweepSetups(MqlTick &tick, MqlRates &rates1M[], int trend, double rsi)
          if(candleHigh > swingHighs[i] && candleClose < swingHighs[i])
          {
             Log("BEARISH SWEEP DETECTED at " + DoubleToString(swingHighs[i], _Digits));
-            return false; // false = sell signal
+            return -1; // sell signal
          }
       }
    }
 
-   // Check bullish sweep
+   // Check bullish sweep (buy)
    if(trend >= 0 && rsi < inpRsiOversold)
    {
       for(int i = 0; i < swingLowsCount; i++)
@@ -585,52 +587,32 @@ bool CheckSweepSetups(MqlTick &tick, MqlRates &rates1M[], int trend, double rsi)
          if(candleLow < swingLows[i] && candleClose > swingLows[i])
          {
             Log("BULLISH SWEEP DETECTED at " + DoubleToString(swingLows[i], _Digits));
-            return true; // true = buy signal
+            return 1; // buy signal
          }
       }
    }
 
-   return false;
+   return 0; // no signal
 }
 
-//+------------------------------------------------------------------+
-//| Execute SMC Trade                                                |
-//+------------------------------------------------------------------+
-void ExecuteSMCTrade(MqlTick &tick, MqlRates &rates1M[])
+void ExecuteSMCTrade(MqlTick &tick, MqlRates &rates1M[], int signalDirection)
 {
-   double candleHigh = rates1M[1].high;
-   double candleLow = rates1M[1].low;
-   double candleClose = rates1M[1].close;
+   double candleHigh  = rates1M[1].high;
+   double candleLow   = rates1M[1].low;
+   double entryPrice  = 0;
+   double slPrice     = 0;
+   double tpPrice     = 0;
+   bool   isBuy       = (signalDirection == 1);
 
-   // Determine trade direction
-   bool isBuy = false;
-   double slPrice = 0, tpPrice = 0, entryPrice = 0;
-
-   // Check for buy signal
-   for(int i = 0; i < swingLowsCount; i++)
+   if(isBuy)
    {
-      if(candleLow < swingLows[i] && candleClose > swingLows[i])
-      {
-         isBuy = true;
-         slPrice = candleLow;
-         entryPrice = tick.bid;
-         break;
-      }
+      entryPrice = tick.ask;
+      slPrice    = candleLow;
    }
-
-   // Check for sell signal
-   if(!isBuy)
+   else
    {
-      for(int i = 0; i < swingHighsCount; i++)
-      {
-         if(candleHigh > swingHighs[i] && candleClose < swingHighs[i])
-         {
-            isBuy = false;
-            slPrice = candleHigh;
-            entryPrice = tick.ask;
-            break;
-         }
-      }
+      entryPrice = tick.bid;
+      slPrice    = candleHigh;
    }
 
    if(slPrice == 0)
@@ -648,10 +630,7 @@ void ExecuteSMCTrade(MqlTick &tick, MqlRates &rates1M[])
 
    // Calculate TP
    double tpDistance = slDistance * inpRewardToRisk;
-   if(isBuy)
-      tpPrice = entryPrice + tpDistance;
-   else
-      tpPrice = entryPrice - tpDistance;
+   tpPrice = isBuy ? entryPrice + tpDistance : entryPrice - tpDistance;
 
    // Normalize prices
    slPrice = NormalizeDouble(slPrice, _Digits);
