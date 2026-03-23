@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
 //|                   SupertrendGridHybrid.mq5                       |
-//|        Phase 1 — Core Indicators, Visuals & Debounce            |
-//|   Planner 2 Merged: ADX + ATR Trail handles, 60s debounce,      |
-//|   GetLastError logging, OBJ_TEXT signals, duplicate guard.       |
+//|  Phase 2 — Filters & Main Entry (Magic 1000)                    |
+//|  Builds on Phase 1: ADX filter, Spread guard, Margin guard,     |
+//|  position checker, and OrderSend with GetLastError logging.     |
 //+------------------------------------------------------------------+
 #property copyright   "Rahul — SupertrendGridHybrid EA"
 #property link        ""
-#property version     "1.00"
-#property description "Supertrend Grid Hybrid EA — Phase 1 of 6"
+#property version     "2.00"
+#property description "Supertrend Grid Hybrid EA — Phase 2 of 6"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -19,8 +19,9 @@ input group "══ Supertrend Settings ══"
 input int    InpStAtrPeriod     = 10;    // ST: ATR Period
 input double InpStMultiplier    = 3.0;   // ST: Multiplier
 
-input group "══ ADX Filter (Phase 2+) ══"
+input group "══ ADX Filter ══"
 input int    InpAdxPeriod       = 14;    // ADX Period
+input double InpAdxMinLevel     = 25.0;  // ADX Minimum Level (trend strength)
 
 input group "══ ATR Trailing Stop (Phase 3+) ══"
 input int    InpAtrTrailPeriod  = 14;    // ATR Trail: Period
@@ -28,6 +29,13 @@ input double InpAtrTrailMult    = 1.5;   // ATR Trail: Multiplier
 
 input group "══ Debounce Timer ══"
 input int    InpDebounceSec     = 60;    // Debounce: seconds between evaluations
+
+input group "══ Trade Entry (Phase 2) ══"
+input double InpLotSize         = 0.01;  // Lot Size
+input int    InpMaxSpreadPts    = 20;    // Max Allowed Spread (points)
+input double InpMinFreeMargin   = 100.0; // Min Free Margin (USD)
+input int    InpSL_Points       = 200;   // Stop Loss (points)
+input int    InpTP_Points       = 400;   // Take Profit (points)
 
 input group "══ Magic Numbers ══"
 input long   InpMagic1          = 1000;  // Magic — Main Runner
@@ -60,6 +68,16 @@ ENUM_ST_DIR g_lastLabelDir  = ST_NONE; // Direction of the last drawn label
 //  DEBOUNCE
 //===================================================================
 datetime g_lastProcessTime = 0;
+
+//===================================================================
+//  PHASE 2 — STATE FLAGS
+//===================================================================
+bool g_trade1Stage1Active = false; // true once Stage 1 trail is locked (Phase 3)
+
+//===================================================================
+//  TRADE OBJECT (CTrade)
+//===================================================================
+CTrade g_trade;
 
 //===================================================================
 //  CHART OBJECT NAMING
@@ -189,6 +207,157 @@ void DrawLabel(datetime barTime, double price, bool isBuy)
 
 
 //+------------------------------------------------------------------+
+//|  GetADX — returns current ADX main line value                   |
+//|  Returns -1.0 on failure.                                        |
+//+------------------------------------------------------------------+
+double GetADX()
+{
+   double adxBuf[];
+   ArraySetAsSeries(adxBuf, true);
+   if(CopyBuffer(g_adxHandle, 0, 0, 3, adxBuf) < 1)
+   {
+      PrintFormat("GetADX — CopyBuffer failed. Err: %d", GetLastError());
+      return -1.0;
+   }
+   return adxBuf[0];
+}
+
+
+//+------------------------------------------------------------------+
+//|  HasOpenPosition                                                  |
+//|  Returns true if there is an open position on _Symbol with the  |
+//|  given magic number and direction (ORDER_TYPE_BUY/SELL).        |
+//+------------------------------------------------------------------+
+bool HasOpenPosition(long magic, ENUM_ORDER_TYPE direction)
+{
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL)      != _Symbol)  continue;
+      if(PositionGetInteger(POSITION_MAGIC)      != magic)    continue;
+      if((ENUM_ORDER_TYPE)PositionGetInteger(POSITION_TYPE) != direction) continue;
+      return true;
+   }
+   return false;
+}
+
+
+//+------------------------------------------------------------------+
+//|  PreTradeFiltersPass                                             |
+//|  Runs all pre-trade safety checks before any order is sent.     |
+//|  Returns true only when ALL conditions are met.                 |
+//+------------------------------------------------------------------+
+bool PreTradeFiltersPass(bool isBuy)
+{
+   //--- Filter 1: ADX trend strength
+   double adx = GetADX();
+   if(adx < 0)
+   {
+      Print("FILTER BLOCK: ADX read failed.");
+      return false;
+   }
+   if(adx < InpAdxMinLevel)
+   {
+      PrintFormat("FILTER BLOCK: ADX %.1f < %.1f — market not trending.", adx, InpAdxMinLevel);
+      return false;
+   }
+
+   //--- Filter 2: Spread
+   long spreadPts = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
+   if(spreadPts > InpMaxSpreadPts)
+   {
+      PrintFormat("FILTER BLOCK: Spread %d pts > Max %d pts.", (int)spreadPts, InpMaxSpreadPts);
+      return false;
+   }
+
+   //--- Filter 3: Free margin
+   double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+   if(freeMargin < InpMinFreeMargin)
+   {
+      PrintFormat("FILTER BLOCK: Free margin %.2f < Min %.2f.", freeMargin, InpMinFreeMargin);
+      return false;
+   }
+
+   return true; // all filters passed
+}
+
+
+//+------------------------------------------------------------------+
+//|  OpenMainTrade                                                   |
+//|  Sends the Magic 1000 entry order in the direction of the flip. |
+//|  Wraps OrderSend in full GetLastError() logging.                |
+//+------------------------------------------------------------------+
+void OpenMainTrade(bool isBuy)
+{
+   //--- Guard: don't stack two Main Runner trades in same direction
+   ENUM_ORDER_TYPE dir = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+   if(HasOpenPosition(InpMagic1, dir))
+   {
+      PrintFormat("ENTRY SKIP: Magic %d %s position already open.",
+                  (int)InpMagic1, isBuy ? "BUY" : "SELL");
+      return;
+   }
+
+   //--- Pre-trade filters
+   if(!PreTradeFiltersPass(isBuy)) return;
+
+   //--- Build price levels
+   double price, sl, tp;
+   double slDist = InpSL_Points * _Point;
+   double tpDist = InpTP_Points * _Point;
+
+   if(isBuy)
+   {
+      price = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+      sl    = price - slDist;
+      tp    = price + tpDist;
+   }
+   else
+   {
+      price = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+      sl    = price + slDist;
+      tp    = price - tpDist;
+   }
+
+   //--- Normalize to broker's digit precision
+   price = NormalizeDouble(price, _Digits);
+   sl    = NormalizeDouble(sl,    _Digits);
+   tp    = NormalizeDouble(tp,    _Digits);
+
+   //--- Configure CTrade
+   g_trade.SetExpertMagicNumber(InpMagic1);
+   g_trade.SetDeviationInPoints(10);
+   g_trade.SetTypeFilling(ORDER_FILLING_IOC);
+
+   //--- Send order
+   bool result = isBuy
+                 ? g_trade.Buy (InpLotSize, _Symbol, price, sl, tp, "SGH Main BUY")
+                 : g_trade.Sell(InpLotSize, _Symbol, price, sl, tp, "SGH Main SELL");
+
+   if(!result)
+   {
+      PrintFormat("ORDER FAILED: %s Magic %d | RetCode: %d | Err: %d | Msg: %s",
+                  isBuy ? "BUY" : "SELL",
+                  (int)InpMagic1,
+                  g_trade.ResultRetcode(),
+                  GetLastError(),
+                  g_trade.ResultRetcodeDescription());
+   }
+   else
+   {
+      PrintFormat("ORDER OK: %s Magic %d | Ticket: %d | Price: %.5f | SL: %.5f | TP: %.5f | Lots: %.2f",
+                  isBuy ? "BUY" : "SELL",
+                  (int)InpMagic1,
+                  (int)g_trade.ResultOrder(),
+                  price, sl, tp,
+                  InpLotSize);
+      g_trade1Stage1Active = false; // reset stage flag for new trade
+   }
+}
+
+
+//+------------------------------------------------------------------+
 //|  OnInit                                                          |
 //+------------------------------------------------------------------+
 int OnInit()
@@ -201,7 +370,7 @@ int OnInit()
       return INIT_FAILED;
    }
 
-   //--- ATR handle for trailing stop (reserved — Phase 3)
+   //--- ATR handle for trailing stop (Phase 3)
    g_atrTrlHandle = iATR(_Symbol, PERIOD_CURRENT, InpAtrTrailPeriod);
    if(g_atrTrlHandle == INVALID_HANDLE)
    {
@@ -209,7 +378,7 @@ int OnInit()
       return INIT_FAILED;
    }
 
-   //--- ADX handle (reserved — Phase 2)
+   //--- ADX handle
    g_adxHandle = iADX(_Symbol, PERIOD_CURRENT, InpAdxPeriod);
    if(g_adxHandle == INVALID_HANDLE)
    {
@@ -217,13 +386,20 @@ int OnInit()
       return INIT_FAILED;
    }
 
+   //--- Configure CTrade defaults
+   g_trade.SetExpertMagicNumber(InpMagic1);
+   g_trade.SetDeviationInPoints(10);
+   g_trade.SetTypeFilling(ORDER_FILLING_IOC);
+   g_trade.LogLevel(LOG_LEVEL_ERRORS);
+
    //--- Startup banner
    PrintFormat("══════════════════════════════════════════════");
-   PrintFormat("  SupertrendGridHybrid EA v1.00 — Phase 1     ");
-   PrintFormat("  Symbol  : %s | TF: %s",        _Symbol, EnumToString(Period()));
-   PrintFormat("  ST ATR  : %d  | Mult: %.1f",   InpStAtrPeriod, InpStMultiplier);
-   PrintFormat("  ADX     : %d  | Debounce: %ds",InpAdxPeriod,   InpDebounceSec);
-   PrintFormat("  Magic 1 : %d  | Magic 2: %d",  (int)InpMagic1, (int)InpMagic2);
+   PrintFormat("  SupertrendGridHybrid EA v2.00 — Phase 2     ");
+   PrintFormat("  Symbol  : %s | TF: %s",           _Symbol, EnumToString(Period()));
+   PrintFormat("  ST ATR  : %d  | Mult: %.1f",      InpStAtrPeriod, InpStMultiplier);
+   PrintFormat("  ADX Min : %.0f | Spread Max: %d",  InpAdxMinLevel, InpMaxSpreadPts);
+   PrintFormat("  Lot: %.2f | SL: %d pts | TP: %d pts", InpLotSize, InpSL_Points, InpTP_Points);
+   PrintFormat("  Magic 1 : %d  | Magic 2: %d",     (int)InpMagic1, (int)InpMagic2);
    PrintFormat("══════════════════════════════════════════════");
 
    return INIT_SUCCEEDED;
@@ -285,28 +461,29 @@ void OnTick()
    //--- ── 6. DRAW LABEL ────────────────────────────────────────────
    if(bullFlip)
    {
-      // BUY label: placed just below the candle low
       double labelPrice = iLow(_Symbol, PERIOD_CURRENT, 0) - 15.0 * _Point;
       DrawLabel(barTime, labelPrice, true);
       PrintFormat("SIGNAL ▲ BUY  — ST flipped BEAR→BULL | Bar: %s | Price: %.5f",
                   TimeToString(barTime), SymbolInfoDouble(_Symbol, SYMBOL_BID));
    }
-   else // bearFlip
+   else
    {
-      // SELL label: placed just above the candle high
       double labelPrice = iHigh(_Symbol, PERIOD_CURRENT, 0) + 15.0 * _Point;
       DrawLabel(barTime, labelPrice, false);
       PrintFormat("SIGNAL ▼ SELL — ST flipped BULL→BEAR | Bar: %s | Price: %.5f",
                   TimeToString(barTime), SymbolInfoDouble(_Symbol, SYMBOL_ASK));
    }
 
-   //--- ── 7. UPDATE TRACKING STATE ────────────────────────────────
+   //--- ── 7. EXECUTE MAIN TRADE (Magic 1000) ───────────────────────
+   OpenMainTrade(bullFlip);
+
+   //--- ── 8. UPDATE TRACKING STATE ────────────────────────────────
    g_lastLabelBar    = barTime;
    g_lastLabelDir    = flipDir;
    g_lastProcessTime = now;
 }
 
 //+------------------------------------------------------------------+
-//  END OF PHASE 1 — SupertrendGridHybrid.mq5
-//  Next: Phase 2 — Filters & Main Entry (Magic 1000)
+//  END OF PHASE 2 — SupertrendGridHybrid.mq5
+//  Next: Phase 3 — Multi-Stage Trailing (Magic 1000)
 //+------------------------------------------------------------------+
