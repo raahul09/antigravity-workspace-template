@@ -3,24 +3,24 @@ AI Bridge for MQL5 Expert Advisor
 =================================
 
 This script monitors the MQL5/Files/ folder for trading analysis requests
-from the MQL5 EA, calls Anthropic Claude API, and writes the response back.
+from the MQL5 EA, calls Ollama local LLM API, and writes the response back.
 
 Architecture:
-    MQL5 EA → ai_request.txt → This Script → Claude API → ai_response.txt → MQL5 EA
+    MQL5 EA -> ai_request.txt -> This Script -> Ollama API -> ai_response.txt -> MQL5 EA
 
 Usage:
-    pip install anthropic watchdog
+    pip install requests watchdog
     python ai_bridge.py
 """
 
 import os
 import time
 import logging
+import requests
 from pathlib import Path
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from anthropic import Anthropic
 
 # === Configuration ===
 
@@ -31,9 +31,9 @@ MT5_FILES_PATH = os.path.join(
     "Files"
 )
 
-# Anthropic API configuration
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "your-api-key-here")
-ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929"  # or "claude-3-5-sonnet-20241022"
+# Ollama configuration
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2")  # or "mistral", "codellama", etc.
 
 # File names
 REQUEST_FILE = "ai_request.txt"
@@ -41,7 +41,7 @@ RESPONSE_FILE = "ai_response.txt"
 ERROR_FILE = "ai_error.txt"
 
 # Timeout settings
-RESPONSE_TIMEOUT_SECONDS = 30  # Max time to wait for API response
+REQUEST_TIMEOUT = 60  # Seconds to wait for LLM response
 
 # === Logging Setup ===
 
@@ -56,18 +56,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# === Claude API Client ===
+# === Ollama API Client ===
 
-class ClaudeTradingAnalyst:
-    """Analyzes market data and provides trading decisions using Claude AI."""
+class OllamaTradingAnalyst:
+    """Analyzes market data and provides trading decisions using Ollama LLM."""
 
-    def __init__(self, api_key: str, model: str = ANTHROPIC_MODEL):
-        self.client = Anthropic(api_key=api_key)
+    def __init__(self, base_url: str, model: str):
+        self.base_url = base_url
         self.model = model
 
     def analyze_market(self, market_data: str) -> dict:
         """
-        Send market data to Claude and get trading decision.
+        Send market data to Ollama and get trading decision.
 
         Args:
             market_data: Formatted market data string
@@ -78,23 +78,51 @@ class ClaudeTradingAnalyst:
         prompt = self._build_prompt(market_data)
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=500,
-                temperature=0.3,  # Lower temperature for more consistent outputs
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
+            logger.info(f"Calling Ollama API at {self.base_url}...")
+
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.3,
+                        "num_predict": 500
                     }
-                ]
+                },
+                timeout=REQUEST_TIMEOUT
             )
 
-            answer = response.content[0].text
+            response.raise_for_status()
+            result = response.json()
+            answer = result.get("response", "")
+
+            logger.info(f"Ollama response received ({len(answer)} chars)")
             return self._parse_response(answer)
 
+        except requests.exceptions.ConnectionError:
+            logger.error("Cannot connect to Ollama. Is it running?")
+            return {
+                "signal": "HOLD",
+                "confidence": 0,
+                "reasoning": "Ollama not running. Start with: ollama serve",
+                "sl": 0,
+                "tp": 0,
+                "risk": "Ollama connection failed"
+            }
+        except requests.exceptions.Timeout:
+            logger.error(f"Ollama request timed out after {REQUEST_TIMEOUT}s")
+            return {
+                "signal": "HOLD",
+                "confidence": 0,
+                "reasoning": f"Request timeout after {REQUEST_TIMEOUT}s",
+                "sl": 0,
+                "tp": 0,
+                "risk": "API timeout"
+            }
         except Exception as e:
-            logger.error(f"Claude API error: {e}")
+            logger.error(f"Ollama API error: {e}")
             return {
                 "signal": "HOLD",
                 "confidence": 0,
@@ -105,7 +133,7 @@ class ClaudeTradingAnalyst:
             }
 
     def _build_prompt(self, market_data: str) -> str:
-        """Build the prompt for Claude analysis."""
+        """Build the prompt for trading analysis."""
         return f"""You are an expert trading analyst analyzing XAUUSD (Gold) market data.
 
 Your task is to evaluate the trading setup and provide a clear decision.
@@ -150,7 +178,7 @@ RISK: Normal volatility expected
 Now analyze the market data above and provide your trading decision."""
 
     def _parse_response(self, response_text: str) -> dict:
-        """Parse Claude's response into structured format."""
+        """Parse LLM response into structured format."""
         result = {
             "signal": "HOLD",
             "confidence": 0,
@@ -193,7 +221,7 @@ Now analyze the market data above and provide your trading decision."""
 class MQL5FileHandler(FileSystemEventHandler):
     """Monitors MQL5 Files folder for request files."""
 
-    def __init__(self, analyst: ClaudeTradingAnalyst):
+    def __init__(self, analyst: OllamaTradingAnalyst):
         super().__init__()
         self.analyst = analyst
         self.request_path = os.path.join(MT5_FILES_PATH, REQUEST_FILE)
@@ -243,12 +271,12 @@ class MQL5FileHandler(FileSystemEventHandler):
                 self.write_error("Empty or invalid request data")
                 return
 
-            # Analyze with Claude
-            logger.info("Calling Claude API...")
+            # Analyze with Ollama
+            logger.info("Calling Ollama API...")
             start_time = time.time()
             decision = self.analyst.analyze_market(market_data)
             elapsed = time.time() - start_time
-            logger.info(f"Claude responded in {elapsed:.2f}s")
+            logger.info(f"Ollama responded in {elapsed:.2f}s")
 
             # Write response
             self.write_response(decision)
@@ -305,10 +333,11 @@ ERROR: {error_message}
 def main():
     """Start the AI bridge service."""
     logger.info("=" * 50)
-    logger.info("MQL5 AI Bridge Service Starting")
+    logger.info("MQL5 AI Bridge Service Starting (Ollama)")
     logger.info("=" * 50)
     logger.info(f"MT5 Files Path: {MT5_FILES_PATH}")
-    logger.info(f"Claude Model: {ANTHROPIC_MODEL}")
+    logger.info(f"Ollama URL: {OLLAMA_BASE_URL}")
+    logger.info(f"Ollama Model: {OLLAMA_MODEL}")
 
     # Verify MT5 path exists
     if not os.path.exists(MT5_FILES_PATH):
@@ -318,13 +347,7 @@ def main():
         return
 
     # Initialize analyst
-    if not ANTHROPIC_API_KEY or ANTHROPIC_API_KEY == "your-api-key-here":
-        logger.error("ANTHROPIC_API_KEY not set!")
-        logger.info("Get your API key from: https://console.anthropic.com")
-        logger.info("Set it with: set ANTHROPIC_API_KEY=sk-ant-...")
-        return
-
-    analyst = ClaudeTradingAnalyst(ANTHROPIC_API_KEY)
+    analyst = OllamaTradingAnalyst(OLLAMA_BASE_URL, OLLAMA_MODEL)
 
     # Setup file watcher
     event_handler = MQL5FileHandler(analyst)

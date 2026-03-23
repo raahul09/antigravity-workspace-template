@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide walks you through setting up AI-powered trading with the **XOS SMC AI Expert Advisor**. The system combines Smart Money Concepts (SMC) strategy with Anthropic Claude AI for trade confirmation.
+This guide walks you through setting up AI-powered trading with the **XOS SMC AI Expert Advisor**. The system combines Smart Money Concepts (SMC) strategy with Ollama local LLM for trade confirmation.
 
 ## Architecture
 
@@ -15,10 +15,10 @@ MT5 Terminal (MQL5 EA)
     ▼
 Python AI Bridge (ai_bridge.py)
     │
-    │ Calls Claude API
+    │ Calls Ollama API (localhost:11434)
     │
     ▼
-Anthropic Claude AI
+Ollama Local LLM
 ```
 
 ---
@@ -31,14 +31,16 @@ Download and install Python 3.8+ from: https://www.python.org/downloads/
 
 During installation, check: **✓ Add Python to PATH**
 
-### 2. Anthropic API Key
+### 2. Ollama Installation
 
-1. Visit: https://console.anthropic.com
-2. Sign up / Log in
-3. Go to **API Keys** section
-4. Click **Create Key**
-5. Copy your key (starts with `sk-ant-...`)
-6. **Important:** Save it securely - you can only see it once!
+1. Download Ollama from: https://ollama.com
+2. Install and run: `ollama serve`
+3. Pull a model (recommended): `ollama pull llama3.2` or `ollama pull mistral`
+
+Verify Ollama is running:
+```bash
+ollama list
+```
 
 ### 3. MT5 Terminal
 
@@ -53,30 +55,34 @@ Ensure MetaTrader 5 is installed and you have an active broker account.
 Open Command Prompt (cmd) and run:
 
 ```bash
-pip install anthropic watchdog
+pip install requests watchdog
 ```
 
 Verify installation:
 
 ```bash
-pip show anthropic
+pip show requests
 pip show watchdog
 ```
 
-### Step 2: Configure API Key
+### Step 2: Configure Ollama
 
-**Option A: Environment Variable (Recommended)**
+By default, the bridge connects to Ollama at `http://localhost:11434`.
+
+**Option A: Environment Variables (Recommended)**
 
 ```bash
-set ANTHROPIC_API_KEY=sk-ant-your-key-here
+set OLLAMA_BASE_URL=http://localhost:11434
+set OLLAMA_MODEL=llama3.2
 ```
 
 **Option B: Edit ai_bridge.py**
 
-Open `ai_bridge.py` and update line 24:
+Open `ai_bridge.py` and update the configuration section:
 
 ```python
-ANTHROPIC_API_KEY = "sk-ant-your-actual-key-here"
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = "llama3.2"
 ```
 
 ### Step 3: Configure MT5 Path (If Needed)
@@ -123,10 +129,11 @@ You should see:
 
 ```
 2024-03-23 17:00:00 - INFO - ==================================================
-2024-03-23 17:00:00 - INFO - MQL5 AI Bridge Service Starting
+2024-03-23 17:00:00 - INFO - MQL5 AI Bridge Service Starting (Ollama)
 2024-03-23 17:00:00 - INFO - ==================================================
 2024-03-23 17:00:00 - INFO - MT5 Files Path: C:\Program Files\MetaTrader 5\MQL5\Files
-2024-03-23 17:00:00 - INFO - Claude Model: claude-sonnet-4-5-20250929
+2024-03-23 17:00:00 - INFO - Ollama URL: http://localhost:11434
+2024-03-23 17:00:00 - INFO - Ollama Model: llama3.2
 2024-03-23 17:00:00 - INFO - Watching: C:\Program Files\MetaTrader 5\MQL5\Files
 2024-03-23 17:00:00 - INFO - Waiting for ai_request.txt files...
 2024-03-23 17:00:00 - INFO - Press Ctrl+C to stop
@@ -189,8 +196,9 @@ You should see:
 Edit `ai_bridge.py` to customize:
 
 ```python
-ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929"  # Change model
-RESPONSE_TIMEOUT_SECONDS = 30                   # API timeout
+OLLAMA_BASE_URL = "http://localhost:11434"      # Ollama API endpoint
+OLLAMA_MODEL = "llama3.2"                       # Change model (e.g., mistral, codellama)
+REQUEST_TIMEOUT = 60                            # Seconds to wait for LLM response
 ```
 
 ---
@@ -221,7 +229,7 @@ RESPONSE_TIMEOUT_SECONDS = 30                   # API timeout
 3. Monitor:
    - Win rate
    - AI accuracy
-   - API costs
+   - Local LLM performance
 
 ### Test 3: Adjust AI Confidence
 
@@ -234,11 +242,10 @@ RESPONSE_TIMEOUT_SECONDS = 30                   # API timeout
 
 ### AI Bridge Won't Start
 
-**Error: ANTHROPIC_API_KEY not set**
+**Error: Ollama not running**
 
 ```bash
-set ANTHROPIC_API_KEY=sk-ant-your-key
-python ai_bridge.py
+ollama serve
 ```
 
 **Error: MT5 Files path does not exist**
@@ -251,14 +258,16 @@ python ai_bridge.py
 ### No AI Response
 
 1. Check `ai_bridge.log` for errors
-2. Verify API key is valid
-3. Check internet connection
-4. Test API manually:
+2. Verify Ollama is running: `ollama list`
+3. Test Ollama API manually:
    ```python
-   from anthropic import Anthropic
-   client = Anthropic(api_key="sk-ant-...")
-   response = client.messages.create(...)
-   print(response)
+   import requests
+   response = requests.post("http://localhost:11434/api/generate", json={
+       "model": "llama3.2",
+       "prompt": "Hello",
+       "stream": False
+   })
+   print(response.json())
    ```
 
 ### EA Shows "AI OFFLINE"
@@ -266,6 +275,7 @@ python ai_bridge.py
 1. Ensure Python bridge is running
 2. Check Experts log for file path errors
 3. Verify `MQL5/Files/` folder is accessible
+4. Ensure Ollama model is pulled: `ollama pull llama3.2`
 
 ### Compilation Errors
 
@@ -277,18 +287,19 @@ python ai_bridge.py
 
 ## API Costs
 
-**Anthropic Claude Pricing** (as of 2024):
+**Ollama Local LLM** - Free and runs on your machine!
 
-| Model | Cost per 1K tokens | ~Cost per signal |
-|-------|-------------------|------------------|
-| Claude 3.5 Sonnet | $0.003 | ~$0.005 |
-| Claude 3 Opus | $0.015 | ~$0.02 |
+- No API costs
+- No rate limits
+- No internet connection required
+- Runs entirely locally
 
-**Example: 50 signals/day**
-- Claude 3.5 Sonnet: ~$0.25/day = ~$7.50/month
-- Claude 3 Opus: ~$1.00/day = ~$30/month
+**System Requirements:**
+- RAM: 4-8GB recommended (depends on model size)
+- Storage: 2-10GB for model files
+- CPU: Modern multi-core processor
 
-**Tip:** Start with Claude 3.5 Sonnet - best value for trading analysis.
+**Tip:** Start with `llama3.2` - good balance of speed and accuracy for trading analysis.
 
 ---
 
@@ -296,7 +307,7 @@ python ai_bridge.py
 
 1. **Start on Demo:** Never test new systems on live accounts first
 
-2. **Monitor API Usage:** Check Anthropic console for usage limits
+2. **Keep Ollama Updated:** Regularly update Ollama and models
 
 3. **Keep Bridge Running:** Start AI bridge before MT5 each day
 
@@ -308,14 +319,16 @@ python ai_bridge.py
 
 7. **Log Analysis:** Review `ai_bridge.log` weekly for patterns
 
+8. **Model Selection:** Try different models for your trading style
+
 ---
 
 ## Security Notes
 
-- **Never commit API keys** to git or share publicly
-- Use **environment variables** for keys in production
-- Store backup keys in password manager
-- Monitor API usage for unusual activity
+- **Never commit Ollama config** with hardcoded paths to git
+- Use **environment variables** for OLLAMA_BASE_URL and OLLAMA_MODEL
+- Keep your MT5 installation path private
+- Monitor local LLM resource usage (RAM, CPU)
 
 ---
 
@@ -335,9 +348,10 @@ python ai_bridge.py
 ## Quick Start Checklist
 
 - [ ] Python 3.8+ installed
-- [ ] `pip install anthropic watchdog` completed
-- [ ] Anthropic API key obtained
-- [ ] API key set in environment or config
+- [ ] `pip install requests watchdog` completed
+- [ ] Ollama installed and running (`ollama serve`)
+- [ ] Model pulled (`ollama pull llama3.2`)
+- [ ] Ollama URL and model set in environment or config
 - [ ] EA copied to `MQL5/Experts/`
 - [ ] EA compiled with 0 errors
 - [ ] AI bridge started (Python window open)
