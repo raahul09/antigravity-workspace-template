@@ -26,15 +26,18 @@ input group "══ ATR Trailing Stop (Phase 3+) ══" input int InpAtrTrailPe
     14;                             // ATR Trail: Period
 input double InpAtrTrailMult = 1.5; // ATR Trail: Multiplier
 
-input group "══ Debounce Timer ══" input int InpDebounceSec =
-    60; // Debounce: seconds between evaluations
+input group "══ Pre-Trade Filters (Phase 2) ══" input double InpAdxMinLevel =
+    10.0; // ADX: Minimum trending level (lowered for testing)
+input int InpMaxSpreadPts =
+    200; // Spread: Max allowed (points) (raised for Gold testing)
+input double InpMinFreeMargin = 10.0; // Margin: Minimum free margin required
+input int InpDebounceSec =
+    10; // Debounce: minimum seconds between signal checks
 
 input group "══ Trade Entry (Phase 2) ══" input double InpLotSize =
-    0.01;                              // Lot Size
-input int InpMaxSpreadPts = 20;        // Max Allowed Spread (points)
-input double InpMinFreeMargin = 100.0; // Min Free Margin (USD)
-input int InpSL_Points = 200;          // Stop Loss (points)
-input int InpTP_Points = 400;          // Take Profit (points)
+    0.01;                     // Lot Size
+input int InpSL_Points = 200; // Stop Loss (points)
+input int InpTP_Points = 400; // Take Profit (points)
 
 input group
     "══ Stage 1 Trail — Fixed Pad (Phase 3) ══" input int InpS1_ActivatePts =
@@ -197,7 +200,7 @@ bool GetSupertrendDirs(ENUM_ST_DIR &dir0, ENUM_ST_DIR &dir1) {
                      : finalDn[i - 1];
 
     //--- Direction: follow previous direction until price crosses the opposite
-    //band
+    // band
     if (dir[i - 1] == ST_BULL)
       dir[i] = (rates[i].close < finalDn[i]) ? ST_BEAR : ST_BULL;
     else
@@ -705,7 +708,7 @@ int CountPositions(long magic) {
 //+------------------------------------------------------------------+
 void OpenScalpTrade(bool isBuy) {
   //--- Guard 1: Max 2 open positions in same direction (Magic1 + Magic2
-  //combined)
+  // combined)
   ENUM_ORDER_TYPE dir = isBuy ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
   int sameDir = 0;
   for (int i = PositionsTotal() - 1; i >= 0; i--) {
