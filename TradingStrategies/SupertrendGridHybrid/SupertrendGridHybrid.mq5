@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
 //|                   SupertrendGridHybrid.mq5                       |
-//|  Phase 4 — Pyramiding & Trend Scalp (Magic 2000)                |
-//|  Unlock: Trade1 open AND Stage1 active.                         |
-//|  Trigger: Prev candle H/L breakout in trend direction.          |
+//|  Phase 5 — Worst-Case Recovery Grid                             |
+//|  Trigger: Trade1 goes negative by GridStartPts.                 |
+//|  Basket breakeven calculator + dynamic basket TP.               |
 //+------------------------------------------------------------------+
 #property copyright   "Rahul — SupertrendGridHybrid EA"
 #property link        ""
-#property version     "4.00"
-#property description "Supertrend Grid Hybrid EA — Phase 4 of 6"
+#property version     "5.00"
+#property description "Supertrend Grid Hybrid EA — Phase 5 of 6"
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -49,6 +49,12 @@ input double InpScalpLot        = 0.01;  // Scalp: Lot Size
 input int    InpScalpSL_Pts     = 150;   // Scalp: Stop Loss (points)
 input int    InpScalpTP_Pts     = 300;   // Scalp: Take Profit (points)
 
+input group "══ Recovery Grid (Phase 5) ══"
+input int    InpGridStartPts    = 100;   // Grid: Trigger if Trade1 <= -N points
+input int    InpGridStepPts     = 50;    // Grid: Distance between grid trades (points)
+input double InpGridLotMult     = 1.5;   // Grid: Lot multiplier per grid level
+input int    InpBasketTPPts     = 20;    // Grid: Basket TP above breakeven (points)
+
 input group "══ Magic Numbers ══"
 input long   InpMagic1          = 1000;  // Magic — Main Runner
 input long   InpMagic2          = 2000;  // Magic — Scalp
@@ -85,6 +91,13 @@ datetime g_lastProcessTime = 0;
 //  PHASE 2 — STATE FLAGS
 //===================================================================
 bool g_trade1Stage1Active = false; // true once Stage 1 trail is locked (Phase 3)
+
+//===================================================================
+//  PHASE 5 — RECOVERY GRID FLAGS
+//===================================================================
+bool   g_gridActive      = false;  // true when recovery grid is running
+double g_gridLastPrice   = 0.0;    // price of last placed grid order (to step correctly)
+int    g_gridLevel       = 0;      // number of grid orders placed (0 = none yet)
 
 //===================================================================
 //  TRADE OBJECT (CTrade)
@@ -365,6 +378,168 @@ void OpenMainTrade(bool isBuy)
                   price, sl, tp,
                   InpLotSize);
       g_trade1Stage1Active = false; // reset stage flag for new trade
+   }
+}
+
+
+//+------------------------------------------------------------------+
+//|  ManageRecoveryGrid                                              |
+//|  Called on every tick.                                          |
+//|  1. Checks if Trade1 drawdown >= GridStartPts.                  |
+//|  2. Activates grid mode, disables pyramiding.                   |
+//|  3. Opens grid orders at fixed step intervals.                  |
+//|  4. Calculates basket breakeven, sets basket TP on all trades.  |
+//|  5. Detects basket closure and resets to State 0.               |
+//+------------------------------------------------------------------+
+void ManageRecoveryGrid()
+{
+   //--- ── PHASE 5a: Check if grid should be triggered ───────────────────
+   if(!g_gridActive)
+   {
+      // Find any open Magic 1000 position
+      for(int i = PositionsTotal() - 1; i >= 0; i--)
+      {
+         ulong ticket = PositionGetTicket(i);
+         if(ticket == 0) continue;
+         if(PositionGetString(POSITION_SYMBOL)  != _Symbol)   continue;
+         if(PositionGetInteger(POSITION_MAGIC)  != InpMagic1) continue;
+
+         double openPrice  = PositionGetDouble(POSITION_PRICE_OPEN);
+         ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+         double currentBid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+         double currentAsk = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+         double drawdownPts = 0.0;
+
+         if(posType == POSITION_TYPE_BUY)
+            drawdownPts = (openPrice - currentBid) / _Point; // negative = in loss
+         else
+            drawdownPts = (currentAsk - openPrice) / _Point;
+
+         if(drawdownPts >= InpGridStartPts)
+         {
+            g_gridActive    = true;
+            g_gridLastPrice = (posType == POSITION_TYPE_BUY) ? currentBid : currentAsk;
+            g_gridLevel     = 0;
+            PrintFormat("GRID TRIGGERED: Trade1 Ticket %d | Drawdown %.0f pts >= threshold %d pts",
+                        (int)ticket, drawdownPts, InpGridStartPts);
+         }
+         break; // only check first Magic 1000 position
+      }
+      return; // Grid not active
+   }
+
+   //--- ── PHASE 5b: Reset check — has basket fully closed? ──────────────
+   if(CountPositions(InpMagic1) == 0)
+   {
+      PrintFormat("GRID CLOSED: Basket fully closed. Resetting to State 0.");
+      g_gridActive          = false;
+      g_gridLastPrice       = 0.0;
+      g_gridLevel           = 0;
+      g_trade1Stage1Active  = false;
+      return;
+   }
+
+   //--- ── PHASE 5c: Determine basket direction ───────────────────────────
+   ENUM_POSITION_TYPE basketDir = POSITION_TYPE_BUY;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL)  != _Symbol)   continue;
+      if(PositionGetInteger(POSITION_MAGIC)  != InpMagic1) continue;
+      basketDir = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+      break;
+   }
+
+   double currentBid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   double currentAsk = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   double stepDist   = InpGridStepPts * _Point;
+
+   //--- ── PHASE 5d: Open next grid level if step distance reached ───
+   bool openNextLevel = false;
+   if(basketDir == POSITION_TYPE_BUY)
+      openNextLevel = (g_gridLastPrice - currentBid) >= stepDist;
+   else
+      openNextLevel = (currentAsk - g_gridLastPrice) >= stepDist;
+
+   if(openNextLevel)
+   {
+      double lotForLevel = InpLotSize * MathPow(InpGridLotMult, g_gridLevel + 1);
+      lotForLevel = NormalizeDouble(lotForLevel, 2);
+
+      g_trade.SetExpertMagicNumber(InpMagic1);
+      g_trade.SetDeviationInPoints(10);
+      g_trade.SetTypeFilling(ORDER_FILLING_IOC);
+
+      bool gResult = (basketDir == POSITION_TYPE_BUY)
+                     ? g_trade.Buy (lotForLevel, _Symbol, 0, 0, 0, "SGH Grid Buy")
+                     : g_trade.Sell(lotForLevel, _Symbol, 0, 0, 0, "SGH Grid Sell");
+
+      if(!gResult)
+      {
+         PrintFormat("GRID ORDER FAILED: Level %d | Lots: %.2f | RetCode: %d | Err: %d | %s",
+                     g_gridLevel + 1, lotForLevel,
+                     g_trade.ResultRetcode(), GetLastError(),
+                     g_trade.ResultRetcodeDescription());
+      }
+      else
+      {
+         g_gridLevel++;
+         g_gridLastPrice = (basketDir == POSITION_TYPE_BUY) ? currentBid : currentAsk;
+         PrintFormat("GRID ORDER OK: Level %d | Ticket %d | Lots: %.2f",
+                     g_gridLevel, (int)g_trade.ResultOrder(), lotForLevel);
+      }
+   }
+
+   //--- ── PHASE 5e: Basket Breakeven Calculator + Set Basket TP ───────
+   double totalVolume     = 0.0;
+   double weightedSum     = 0.0;
+   int    basketCount     = 0;
+
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong t = PositionGetTicket(i);
+      if(t == 0) continue;
+      if(PositionGetString(POSITION_SYMBOL)  != _Symbol)   continue;
+      if(PositionGetInteger(POSITION_MAGIC)  != InpMagic1) continue;
+
+      double vol   = PositionGetDouble(POSITION_VOLUME);
+      double entry = PositionGetDouble(POSITION_PRICE_OPEN);
+      weightedSum += entry * vol;
+      totalVolume += vol;
+      basketCount++;
+   }
+
+   if(basketCount > 0 && totalVolume > 0.0)
+   {
+      double breakevenPrice = weightedSum / totalVolume;
+      double basketTP;
+
+      if(basketDir == POSITION_TYPE_BUY)
+         basketTP = NormalizeDouble(breakevenPrice + InpBasketTPPts * _Point, _Digits);
+      else
+         basketTP = NormalizeDouble(breakevenPrice - InpBasketTPPts * _Point, _Digits);
+
+      //--- Apply basket TP to all Magic 1000 positions
+      for(int i = PositionsTotal() - 1; i >= 0; i--)
+      {
+         ulong t = PositionGetTicket(i);
+         if(t == 0) continue;
+         if(PositionGetString(POSITION_SYMBOL)  != _Symbol)   continue;
+         if(PositionGetInteger(POSITION_MAGIC)  != InpMagic1) continue;
+
+         double currentSL = PositionGetDouble(POSITION_SL);
+         double currentTP = PositionGetDouble(POSITION_TP);
+
+         if(MathAbs(currentTP - basketTP) > _Point) // only modify if TP changed
+         {
+            if(!g_trade.PositionModify(t, currentSL, basketTP))
+            {
+               PrintFormat("BASKET TP SET FAIL: Ticket %d | Err: %d | %s",
+                           (int)t, GetLastError(), g_trade.ResultRetcodeDescription());
+            }
+         }
+      }
    }
 }
 
@@ -711,8 +886,9 @@ void OnTick()
    datetime now = TimeCurrent();
    if((int)(now - g_lastProcessTime) < InpDebounceSec)
    {
-      // Even within debounce, run trail manager every tick for precision
+      // Even within debounce, run trail + grid manager every tick for precision
       ManageMainTrail();
+      ManageRecoveryGrid();
       return;
    }
 
@@ -762,15 +938,20 @@ void OnTick()
    ManageMainTrail();
 
    //--- ── 9. PYRAMIDING: Scalp Trade (Magic 2000) ──────────────────
-   OpenScalpTrade(bullFlip);
+   //   Disabled if recovery grid is active
+   if(!g_gridActive)
+      OpenScalpTrade(bullFlip);
 
-   //--- ── 10. UPDATE TRACKING STATE ──────────────────────────────
+   //--- ── 10. RECOVERY GRID MANAGER ──────────────────────────────
+   ManageRecoveryGrid();
+
+   //--- ── 11. UPDATE TRACKING STATE ─────────────────────────────
    g_lastLabelBar    = barTime;
    g_lastLabelDir    = flipDir;
    g_lastProcessTime = now;
 }
 
 //+------------------------------------------------------------------+
-//  END OF PHASE 4 — SupertrendGridHybrid.mq5
-//  Next: Phase 5 — Worst-Case Recovery Grid (Magic 1000)
+//  END OF PHASE 5 — SupertrendGridHybrid.mq5
+//  Next: Phase 6 — Global Kill Switches (Drawdown + Friday EOD)
 //+------------------------------------------------------------------+
