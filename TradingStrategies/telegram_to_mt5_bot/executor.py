@@ -232,8 +232,74 @@ def execute_signal(signal: Dict[str, Any]) -> Optional[int]:
         logger.error("mt5.order_send returned None. Terminal may be frozen.")
         return None
 
+    # Error codes indicating we missed the price (slippage, requote, timeout, etc.)
+    price_error_codes = [
+        10012,  # TRADE_RETCODE_TIMEOUT
+        10013,  # TRADE_RETCODE_REQUOTE
+        10017,  # TRADE_RETCODE_PRICE_OFF
+        10021,  # TRADE_RETCODE_PRICE_CHANGED
+        10025,  # TRADE_RETCODE_SLIPPAGE
+    ]
+
     if result.retcode != mt5.TRADE_RETCODE_DONE:
         logger.error(f"Trade execution failed! Return code: {result.retcode} ({mt5.last_error()})")
+        
+        # Fallback to Pending Order if we missed the market entry price
+        if action_type == mt5.TRADE_ACTION_DEAL and result.retcode in price_error_codes:
+            logger.info("Market order failed due to price movement/requote. Attempting to place a PENDING order instead...")
+            
+            # Use original target entry if specified, otherwise the entry price we tried
+            fallback_entry = target_entry if target_entry is not None else entry_price
+            
+            # Re-evaluate pending type based on fresh prices
+            fresh_tick = mt5.symbol_info_tick(symbol)
+            if fresh_tick:
+                current_ask = fresh_tick.ask
+                current_bid = fresh_tick.bid
+                
+            if action == "BUY":
+                if fallback_entry < current_ask:
+                    fallback_order_type = mt5.ORDER_TYPE_BUY_LIMIT
+                    fallback_type_name = "BUY LIMIT"
+                else:
+                    fallback_order_type = mt5.ORDER_TYPE_BUY_STOP
+                    fallback_type_name = "BUY STOP"
+            else:  # SELL
+                if fallback_entry > current_bid:
+                    fallback_order_type = mt5.ORDER_TYPE_SELL_LIMIT
+                    fallback_type_name = "SELL LIMIT"
+                else:
+                    fallback_order_type = mt5.ORDER_TYPE_SELL_STOP
+                    fallback_type_name = "SELL STOP"
+            
+            logger.info(f"Preparing Fallback PENDING {fallback_type_name} order for {symbol} at {fallback_entry}")
+            
+            fallback_request = {
+                "action": mt5.TRADE_ACTION_PENDING,
+                "symbol": symbol,
+                "volume": lot_size,
+                "type": fallback_order_type,
+                "price": fallback_entry,
+                "sl": sl_price,
+                "deviation": 20,
+                "magic": config.magic_number,
+                "comment": f"TG Fallback ({signal['parser']})",
+                "type_time": mt5.ORDER_TIME_GTC,
+            }
+            
+            if tp_price > 0:
+                fallback_request["tp"] = tp_price
+                
+            logger.info(f"Sending fallback pending order request: {action} {lot_size} {symbol} at {fallback_entry}")
+            fallback_result = mt5.order_send(fallback_request)
+            
+            if fallback_result and fallback_result.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"Fallback pending order executed successfully! Ticket: {fallback_result.order}")
+                return fallback_result.order
+            else:
+                fallback_err = fallback_result.retcode if fallback_result else "No Response"
+                logger.error(f"Fallback pending order also failed! Return code: {fallback_err}")
+                
         return None
 
     logger.info(f"Order executed successfully! Ticket: {result.order}. Position volume: {result.volume}")
