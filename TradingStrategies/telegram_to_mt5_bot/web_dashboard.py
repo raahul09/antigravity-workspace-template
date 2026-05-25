@@ -158,6 +158,15 @@ async def startup_event():
     logger.info("FastAPI Web Server started. Auto-triggering trading bot engine...")
     # Use create_task to start it asynchronously so startup doesn't block
     asyncio.create_task(bot_manager.start())
+    
+    # Automatically open default web browser to dashboard
+    import webbrowser
+    try:
+        url = "http://127.0.0.1:8000/"
+        logger.info(f"Opening dashboard in default browser: {url}")
+        webbrowser.open(url)
+    except Exception as e:
+        logger.error(f"Failed to automatically open browser: {e}")
 
 
 @app.on_event("shutdown")
