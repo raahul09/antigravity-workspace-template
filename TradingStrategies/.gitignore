@@ -1,0 +1,24 @@
+# Environment variables and secrets
+.env
+.env.*
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Telegram session files (contains credentials)
+*.session
+*.session-journal
+
+# Logs
+*.log
+
+# MetaTrader 5 compiled files
+*.ex5
+*.ex4
+
+# Virtual environments
+.venv/
+venv/
+ENV/

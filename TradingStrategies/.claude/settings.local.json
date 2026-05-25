@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python ai_bridge.py)",
+      "Bash(echo:*)",
+      "Bash(export MT5_PATH=\"C:\\\\Program Files\\\\MetaTrader 5 EXNESS\")",
+      "Read(//d/AntiGravity WorkSpace/antigravity-workspace-template/TradingStrategies/xauusdMt5Bot/$APPDATA/**)",
+      "Read(//d/AntiGravity WorkSpace/antigravity-workspace-template/TradingStrategies/xauusdMt5Bot/$USERPROFILE/AppData/Roaming/**)"
+    ]
+  }
+}
