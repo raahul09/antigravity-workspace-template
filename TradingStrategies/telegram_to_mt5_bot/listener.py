@@ -6,7 +6,7 @@ messages in monitored chats or channels.
 
 import os
 import logging
-from typing import Callable, Union, List
+from typing import Callable, Union, List, Optional
 from telethon import TelegramClient, events
 
 from config import config
@@ -50,18 +50,24 @@ class TelegramSignalListener:
         me = await self.client.get_me()
         logger.info(f"Successfully logged in as: {me.first_name} (@{me.username or 'NoUsername'})")
 
-        # Resolve chats/channels to monitor
-        source_chat: Union[str, int] = config.telegram_source_chat
+        # Resolve chats/channels to monitor (supports comma-separated list)
+        source_chat = config.telegram_source_chat
         
-        # If source chat is a numerical ID (e.g. -100123456789), cast it to integer
         if source_chat:
-            if isinstance(source_chat, str) and (source_chat.startswith("-") or source_chat.isdigit()):
-                try:
-                    source_chat = int(source_chat)
-                except ValueError:
-                    pass
-            chats = [source_chat]
-            logger.info(f"Configured to monitor chat: {source_chat}")
+            chats = []
+            for part in source_chat.split(","):
+                part_clean = part.strip()
+                if not part_clean:
+                    continue
+                if part_clean.startswith("-") or part_clean.isdigit():
+                    try:
+                        chats.append(int(part_clean))
+                    except ValueError:
+                        chats.append(part_clean)
+                else:
+                    chats.append(part_clean)
+            
+            logger.info(f"Configured to monitor chats: {chats}")
         else:
             chats = None
             logger.info("No source chat configured. Monitoring ALL incoming messages (Direct Messages & Groups)")
