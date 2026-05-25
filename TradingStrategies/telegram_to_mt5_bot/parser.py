@@ -63,40 +63,40 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     # Find Stop Loss (SL) - Required
     # Match patterns: SL, S.L, S/L, STOP LOSS, STOPLOSS, STOP-LOSS, STOP_LOSS, STOP, INVALIDATION, INVALID
     sl_match = re.search(
-        r"\b(?:SL|S\.L\.?|S/L|STOP\s*LOSS|STOP\-LOSS|STOP_LOSS|STOP|INVALIDATION|INVALID)(?!\w)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"\b(?:SL|S\.L\.?|S/L|STOP\s*LOSS|STOP\-LOSS|STOP_LOSS|STOP|INVALIDATION|INVALID)(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     if not sl_match:
         logger.warning("Failed to parse required Stop Loss (SL) via regex")
         return None
-    sl = float(sl_match.group(1))
+    sl = float(sl_match.group(1).replace(",", ""))
 
     # Find Take Profit (TP) - Optional
     # Match patterns: TP1, TP 2, TP, T.P.1, T/P1, TAKE PROFIT, TAKEPROFIT, TAKE-PROFIT, TAKE_PROFIT, TARGET1, TARGET, PROFIT1, PROFIT
     tp_match = re.search(
-        r"\b(?:TP[1-9]|TP\s*[1-9]|T\.P\.?[1-9]|T\.P\.?\s*[1-9]|T/P[1-9]|T/P\s*[1-9]|TAKE\s*PROFIT|TAKE\-PROFIT|TAKE_PROFIT|TARGET\s*[1-9]|TARGET|PROFIT\s*[1-9]|PROFIT|TP|T\.P\.?|T/P)(?!\w)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"\b(?:TP[1-9]|TP\s*[1-9]|T\.P\.?[1-9]|T\.P\.?\s*[1-9]|T/P[1-9]|T/P\s*[1-9]|TAKE\s*PROFIT|TAKE\-PROFIT|TAKE_PROFIT|TARGET\s*[1-9]|TARGET|PROFIT\s*[1-9]|PROFIT|TP|T\.P\.?|T/P)(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
-    tp = float(tp_match.group(1)) if tp_match else None
+    tp = float(tp_match.group(1).replace(",", "")) if tp_match else None
 
     # Find Entry Price - Optional (falls back to current market price if absent)
     # Match patterns like: ENTRY: 2420, @ 2420, AT 2420, BUY NOW AT 2420
     entry_match = re.search(
-        r"(?:ENTRY|@|AT|BUY\s+NOW\s+AT|SELL\s+NOW\s+AT)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"(?:ENTRY\s*PRICE|ENTRY|@|AT|BUY\s+NOW\s+AT|SELL\s+NOW\s+AT)(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     entry = None
     if entry_match:
-        entry = float(entry_match.group(1))
+        entry = float(entry_match.group(1).replace(",", ""))
     else:
         # Check if the entry price follows the action keyword directly (or with a symbol in between)
         # e.g., "sell 4571" or "buy gold 2420"
         action_entry_match = re.search(
-            r"\b(?:BUY|SELL|LONG|SHORT)\s+(?:[A-Z]{3}/?[A-Z]{3}|GOLD|SILVER)?\s*(\d+(?:\.\d+)?)",
+            r"\b(?:BUY|SELL|LONG|SHORT)\s+(?:[A-Z]{3}/?[A-Z]{3}|GOLD|SILVER)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)",
             text_upper
         )
         if action_entry_match:
-            entry = float(action_entry_match.group(1))
+            entry = float(action_entry_match.group(1).replace(",", ""))
 
     return {
         "action": action,

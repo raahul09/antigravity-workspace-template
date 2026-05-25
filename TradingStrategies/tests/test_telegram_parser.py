@@ -134,3 +134,23 @@ def test_sl_tp_combinations():
     assert res is not None
     assert res["sl"] == 2380.0
     assert res["tp"] == 2430.0
+
+
+def test_mrsimpletrader_signals():
+    """Verify parsing of signals containing commas in prices and parenthesis around keywords (like mrsimpletrader style)."""
+    message = (
+        "XAUUSD (GOLD) SELL SETUP\n"
+        "Based on the 1-minute chart, we have a clean bearish rejection and a break out.\n"
+        "Entry Price: 4,527.62\n"
+        "Stop Loss (SL): 4,531.26 (36 Pips)\n"
+        "Target (TP): 4,517.45 (101 Pips)\n"
+        "Risk/Reward: 1:2.8"
+    )
+    res = parse_signal(message)
+    assert res is not None
+    assert res["action"] == "SELL"
+    assert res["symbol"] == "XAUUSD"
+    assert res["entry"] == 4527.62
+    assert res["sl"] == 4531.26
+    assert res["tp"] == 4517.45
+
