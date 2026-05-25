@@ -188,3 +188,22 @@ def test_customizable_keywords():
         config.entry_keywords = orig_entry
 
 
+def test_quoted_keywords():
+    """Verify that parsing works when keywords are enclosed in single or double quotes (JSON-like structures)."""
+    message = (
+        '{"action": "BUY",\n'
+        ' "symbol": "XAUUSD",\n'
+        ' "entry": 4560,\n'
+        ' "sl": 4551,\n'
+        ' "tp": 4565.45}'
+    )
+    res = parse_signal(message)
+    assert res is not None
+    assert res["action"] == "BUY"
+    assert res["symbol"] == "XAUUSD"
+    assert res["entry"] == 4560.0
+    assert res["sl"] == 4551.0
+    assert res["tp"] == 4565.45
+
+
+

@@ -15,6 +15,17 @@ from config import config
 logger = logging.getLogger(__name__)
 
 
+# List of common 6-letter uppercase words that can match the symbol pattern but should be ignored
+SYMBOL_BLOCKLIST = {
+    "ACTION", "SYMBOL", "STATUS", "SIGNAL", "TARGET", "REPORT", "VOLUME", "PROFIT", 
+    "MARKET", "DETAIL", "ROUTER", "CONFIG", "SYSTEM", "SERVER", "BUYING", 
+    "SELLING", "REJECT", "UPDATE", "SETUP", "ACTIVE", "EXNESS", "BROKER",
+    "CHART", "ENTRY", "EMAILS", "CLIENT", "LOGGER", "PEOPLE", "ONLINE", "BEARIS",
+    "BULLIS"
+}
+
+
+
 def clean_symbol(symbol: str) -> str:
     """Normalize common trading symbols to match MT5 standards.
 
@@ -82,8 +93,13 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
 
     # Find Symbol: e.g., XAUUSD, EURUSD, GBPUSD, GOLD
     # Matches words with letters and optional slashes (e.g. EUR/USD or XAUUSD)
-    symbol_match = re.search(r"\b([A-Z]{3}/?[A-Z]{3}|GOLD|SILVER)\b", text_upper)
-    symbol = clean_symbol(symbol_match.group(1)) if symbol_match else config.default_symbol
+    symbol = config.default_symbol
+    symbol_matches = re.finditer(r"\b([A-Z]{3}/?[A-Z]{3}|GOLD|SILVER)\b", text_upper)
+    for m in symbol_matches:
+        candidate = m.group(1)
+        if candidate not in SYMBOL_BLOCKLIST:
+            symbol = clean_symbol(candidate)
+            break
 
     # Dynamic regex builders
     sl_pat_str = build_keyword_regex(config.sl_keywords)
@@ -92,7 +108,7 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
 
     # Find Stop Loss (SL) - Required
     sl_match = re.search(
-        rf"\b(?:{sl_pat_str})(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
+        rf"\b(?:{sl_pat_str})(?!\w)\s*(?:\)|\]|\"|')?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     if not sl_match:
@@ -102,14 +118,14 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
 
     # Find Take Profit (TP) - Optional
     tp_match = re.search(
-        rf"\b(?:{tp_pat_str})(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
+        rf"\b(?:{tp_pat_str})(?!\w)\s*(?:\)|\]|\"|')?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     tp = float(tp_match.group(1).replace(",", "")) if tp_match else None
 
     # Find Entry Price - Optional (falls back to current market price if absent)
     entry_match = re.search(
-        rf"(?:{entry_pat_str})(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
+        rf"(?:{entry_pat_str})(?!\w)\s*(?:\)|\]|\"|')?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     entry = None

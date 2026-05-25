@@ -168,7 +168,11 @@ async def shutdown_event():
 
 
 # Get static path
-static_dir = os.path.join(os.path.dirname(__file__), "static")
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    static_dir = os.path.join(sys._MEIPASS, "static")
+else:
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+
 if not os.path.exists(static_dir):
     os.makedirs(static_dir)
 
