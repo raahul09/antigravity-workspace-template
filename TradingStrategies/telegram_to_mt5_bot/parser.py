@@ -61,9 +61,9 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     symbol = clean_symbol(symbol_match.group(1)) if symbol_match else config.default_symbol
 
     # Find Stop Loss (SL) - Required
-    # Match patterns like: SL: 2410, SL 2410, STOP LOSS 2410, STOP: 2410
+    # Match patterns like: SL: 2410, SL 2410, STOP LOSS 2410, STOP: 2410, STOPLOSS: 2410
     sl_match = re.search(
-        r"(?:SL|STOP LOSS|STOP)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"(?:SL|STOP\s*LOSS|STOP)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
         text_upper
     )
     if not sl_match:
@@ -72,9 +72,9 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     sl = float(sl_match.group(1))
 
     # Find Take Profit (TP) - Optional
-    # Match patterns like: TP: 2435, TP1: 2435, TP 2435, TARGET: 2435
+    # Match patterns like: TP: 2435, TP1: 2435, TP 2435, TARGET: 2435, TAKEPROFIT: 2435
     tp_match = re.search(
-        r"(?:TP1|TP\s*1|TP|TAKE PROFIT|TARGET)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"(?:TP1|TP\s*1|TP|TAKE\s*PROFIT|TARGET)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
         text_upper
     )
     tp = float(tp_match.group(1)) if tp_match else None
@@ -85,7 +85,18 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
         r"(?:ENTRY|@|AT|BUY\s+NOW\s+AT|SELL\s+NOW\s+AT)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
         text_upper
     )
-    entry = float(entry_match.group(1)) if entry_match else None
+    entry = None
+    if entry_match:
+        entry = float(entry_match.group(1))
+    else:
+        # Check if the entry price follows the action keyword directly (or with a symbol in between)
+        # e.g., "sell 4571" or "buy gold 2420"
+        action_entry_match = re.search(
+            r"\b(?:BUY|SELL|LONG|SHORT)\s+(?:[A-Z]{3}/?[A-Z]{3}|GOLD|SILVER)?\s*(\d+(?:\.\d+)?)",
+            text_upper
+        )
+        if action_entry_match:
+            entry = float(action_entry_match.group(1))
 
     return {
         "action": action,

@@ -88,6 +88,20 @@ def test_parse_variations():
     assert res2["sl"] == 2435.0
     assert res2["tp"] == 2380.0
 
+    # Message matching user's exact signal formatting (stoploss/tp with no spaces, fallback symbol)
+    msg3 = (
+        "sell  4571 \n"
+        "stoploss 4575\n"
+        "tp 4568"
+    )
+    res3 = parse_signal(msg3)
+    assert res3 is not None
+    assert res3["action"] == "SELL"
+    assert res3["symbol"] == "XAUUSD"
+    assert res3["entry"] == 4571.0
+    assert res3["sl"] == 4575.0
+    assert res3["tp"] == 4568.0
+
 
 def test_invalid_messages_ignored():
     """Verify that messages without trading signals are ignored (returns None)."""
