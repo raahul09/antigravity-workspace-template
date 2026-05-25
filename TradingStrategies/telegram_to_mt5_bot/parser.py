@@ -34,6 +34,31 @@ def clean_symbol(symbol: str) -> str:
     return sym
 
 
+def build_keyword_regex(keywords_str: str, is_tp: bool = False) -> str:
+    """Build a regex pattern string from a comma-separated list of keywords.
+
+    Args:
+        keywords_str: Comma-separated keyword list.
+        is_tp: If True, allows optional target numerical suffixes (e.g. TP1).
+
+    Returns:
+        Regex pattern string representing the alternation.
+    """
+    keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
+    # Sort by length descending to match longer keywords first
+    keywords.sort(key=len, reverse=True)
+    
+    patterns = []
+    for k in keywords:
+        # Escape characters and replace literal spaces with \s* to support multiple spaces
+        pat = re.escape(k).replace(r"\ ", r"\s*")
+        if is_tp:
+            pat += r"(?:\s*[1-9])?"
+        patterns.append(pat)
+        
+    return "|".join(patterns)
+
+
 def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     """Parse signal using deterministic regex patterns.
 
@@ -60,10 +85,14 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     symbol_match = re.search(r"\b([A-Z]{3}/?[A-Z]{3}|GOLD|SILVER)\b", text_upper)
     symbol = clean_symbol(symbol_match.group(1)) if symbol_match else config.default_symbol
 
+    # Dynamic regex builders
+    sl_pat_str = build_keyword_regex(config.sl_keywords)
+    tp_pat_str = build_keyword_regex(config.tp_keywords, is_tp=True)
+    entry_pat_str = build_keyword_regex(config.entry_keywords)
+
     # Find Stop Loss (SL) - Required
-    # Match patterns: SL, S.L, S/L, STOP LOSS, STOPLOSS, STOP-LOSS, STOP_LOSS, STOP, INVALIDATION, INVALID
     sl_match = re.search(
-        r"\b(?:SL|S\.L\.?|S/L|STOP\s*LOSS|STOP\-LOSS|STOP_LOSS|STOP|INVALIDATION|INVALID)(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
+        rf"\b(?:{sl_pat_str})(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     if not sl_match:
@@ -72,17 +101,15 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     sl = float(sl_match.group(1).replace(",", ""))
 
     # Find Take Profit (TP) - Optional
-    # Match patterns: TP1, TP 2, TP, T.P.1, T/P1, TAKE PROFIT, TAKEPROFIT, TAKE-PROFIT, TAKE_PROFIT, TARGET1, TARGET, PROFIT1, PROFIT
     tp_match = re.search(
-        r"\b(?:TP[1-9]|TP\s*[1-9]|T\.P\.?[1-9]|T\.P\.?\s*[1-9]|T/P[1-9]|T/P\s*[1-9]|TAKE\s*PROFIT|TAKE\-PROFIT|TAKE_PROFIT|TARGET\s*[1-9]|TARGET|PROFIT\s*[1-9]|PROFIT|TP|T\.P\.?|T/P)(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
+        rf"\b(?:{tp_pat_str})(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     tp = float(tp_match.group(1).replace(",", "")) if tp_match else None
 
     # Find Entry Price - Optional (falls back to current market price if absent)
-    # Match patterns like: ENTRY: 2420, @ 2420, AT 2420, BUY NOW AT 2420
     entry_match = re.search(
-        r"(?:ENTRY\s*PRICE|ENTRY|@|AT|BUY\s+NOW\s+AT|SELL\s+NOW\s+AT)(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
+        rf"(?:{entry_pat_str})(?!\w)\s*(?:\)|\])?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
     entry = None

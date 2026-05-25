@@ -80,6 +80,23 @@ class BotConfig(BaseSettings):
         description="Local LLM model to use for signal parsing"
     )
 
+    # Customizable parsing keywords
+    sl_keywords: str = Field(
+        default="SL,S.L.,S.L,S/L,STOP LOSS,STOPLOSS,STOP-LOSS,STOP_LOSS,STOP,INVALIDATION,INVALID", 
+        alias="TELEGRAM_BOT_SL_KEYWORDS", 
+        description="Comma-separated Stop Loss keywords"
+    )
+    tp_keywords: str = Field(
+        default="TP,T.P.,T.P,T/P,TAKE PROFIT,TAKEPROFIT,TAKE-PROFIT,TAKE_PROFIT,TARGET,PROFIT", 
+        alias="TELEGRAM_BOT_TP_KEYWORDS", 
+        description="Comma-separated Take Profit keywords"
+    )
+    entry_keywords: str = Field(
+        default="ENTRY,ENTRY PRICE,@,AT,BUY NOW AT,SELL NOW AT", 
+        alias="TELEGRAM_BOT_ENTRY_KEYWORDS", 
+        description="Comma-separated Entry Price keywords"
+    )
+
     @model_validator(mode="before")
     @classmethod
     def clean_empty_strings(cls, data: Any) -> Any:
@@ -95,6 +112,52 @@ class BotConfig(BaseSettings):
             return cleaned
         return data
 
+    def save_to_env(self, updates: dict) -> None:
+        """Save updated fields back to the .env file.
+
+        Args:
+            updates: Dict mapping configuration field names to their new values.
+        """
+        import os
+        
+        env_path = self.model_config.get("env_file", ".env")
+        lines = []
+        if os.path.exists(env_path):
+            with open(env_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        
+        # Convert field names to alias names
+        alias_updates = {}
+        for k, v in updates.items():
+            field = self.model_fields.get(k)
+            if field and field.alias:
+                alias_updates[field.alias] = str(v) if v is not None else ""
+            else:
+                alias_updates[k] = str(v) if v is not None else ""
+
+        # Update existing keys, track what we updated
+        updated_keys = set()
+        new_lines = []
+        for line in lines:
+            line_strip = line.strip()
+            if line_strip and not line_strip.startswith("#") and "=" in line_strip:
+                key, _ = line_strip.split("=", 1)
+                key = key.strip()
+                if key in alias_updates:
+                    new_lines.append(f"{key}={alias_updates[key]}\n")
+                    updated_keys.add(key)
+                    continue
+            new_lines.append(line)
+
+        # Add any new keys that weren't in the .env file
+        for key, val in alias_updates.items():
+            if key not in updated_keys:
+                new_lines.append(f"{key}={val}\n")
+
+        # Write back to .env
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
@@ -104,3 +167,4 @@ class BotConfig(BaseSettings):
 
 # Instantiate global configuration
 config = BotConfig()
+

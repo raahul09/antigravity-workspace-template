@@ -154,3 +154,37 @@ def test_mrsimpletrader_signals():
     assert res["sl"] == 4531.26
     assert res["tp"] == 4517.45
 
+
+def test_customizable_keywords():
+    """Verify that parsing works correctly when keywords are customized in config."""
+    from config import config
+    
+    # Save original keywords
+    orig_sl = config.sl_keywords
+    orig_tp = config.tp_keywords
+    orig_entry = config.entry_keywords
+    
+    try:
+        # Customize keywords
+        config.sl_keywords = "INVALID_AT,EXIT"
+        config.tp_keywords = "TARGET_LEVEL"
+        config.entry_keywords = "START_PRICE"
+        
+        message = (
+            "BUY XAUUSD\n"
+            "START_PRICE: 2400.00\n"
+            "INVALID_AT: 2390.00\n"
+            "TARGET_LEVEL: 2420.00"
+        )
+        res = parse_signal(message)
+        assert res is not None
+        assert res["entry"] == 2400.0
+        assert res["sl"] == 2390.0
+        assert res["tp"] == 2420.0
+    finally:
+        # Restore original keywords
+        config.sl_keywords = orig_sl
+        config.tp_keywords = orig_tp
+        config.entry_keywords = orig_entry
+
+

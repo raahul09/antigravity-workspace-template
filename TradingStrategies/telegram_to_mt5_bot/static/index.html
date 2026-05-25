@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrootTrade - Telegram to MT5 Automator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <i class="fa-solid fa-bolt logo-icon"></i>
+                <span class="logo-text">Groot<span>Trade</span></span>
+            </div>
+            <nav class="sidebar-menu">
+                <button class="menu-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="menu-item" data-tab="tester">
+                    <i class="fa-solid fa-vial"></i>
+                    <span>Signal Tester</span>
+                </button>
+                <button class="menu-item" data-tab="config">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Settings</span>
+                </button>
+                <button class="menu-item" data-tab="logs">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span>System Logs</span>
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="bot-control-btn-container">
+                    <button id="sidebar-toggle-btn" class="btn btn-primary start-btn">
+                        <i class="fa-solid fa-play"></i> Start Bot
+                    </button>
+                </div>
+                <div class="system-version">v1.1.0-production</div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="content-header">
+                <div class="header-title">
+                    <h1 id="page-title">Dashboard</h1>
+                    <p class="subtitle" id="page-subtitle">Real-time status overview and performance controls</p>
+                </div>
+                <div class="header-status-pills">
+                    <div class="status-pill" id="tg-pill">
+                        <span class="status-indicator idle"></span>
+                        <i class="fa-brands fa-telegram"></i>
+                        <span>Telegram: Connecting</span>
+                    </div>
+                    <div class="status-pill" id="mt5-pill">
+                        <span class="status-indicator idle"></span>
+                        <i class="fa-solid fa-network-wired"></i>
+                        <span>MT5: Connecting</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="content-body">
+                <!-- ================= DASHBOARD TAB ================= -->
+                <section class="tab-pane active" id="dashboard-tab">
+                    <!-- Status Cards Grid -->
+                    <div class="cards-grid">
+                        <div class="status-card glass">
+                            <div class="card-icon tg-theme">
+                                <i class="fa-brands fa-telegram"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Telegram Connection</h3>
+                                <p class="card-value" id="tg-status-val">Checking...</p>
+                                <p class="card-subtext" id="tg-user-val">Not Authorized</p>
+                            </div>
+                        </div>
+
+                        <div class="status-card glass">
+                            <div class="card-icon mt5-theme">
+                                <i class="fa-solid fa-money-bill-trend-up"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>MetaTrader 5 Account</h3>
+                                <p class="card-value" id="mt5-status-val">Checking...</p>
+                                <p class="card-subtext" id="mt5-account-val">Disconnected</p>
+                            </div>
+                        </div>
+
+                        <div class="status-card glass">
+                            <div class="card-icon bot-theme">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Bot Status</h3>
+                                <p class="card-value" id="bot-status-val">Inactive</p>
+                                <p class="card-subtext" id="bot-status-desc">Click Start to begin monitoring</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance and Controls -->
+                    <div class="dashboard-details-grid">
+                        <!-- Bot Control Console -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-gamepad"></i> Engine Controls</h2>
+                            </div>
+                            <div class="card-body controls-flex">
+                                <div class="control-text">
+                                    <p>Start or stop the Telegram listener and MT5 execution pipeline. Note that when the bot is stopped, it terminates the active session to avoid session locks, allowing you to run other scripts safely.</p>
+                                </div>
+                                <div class="control-actions">
+                                    <button id="console-start-btn" class="btn btn-primary btn-large start-btn">
+                                        <i class="fa-solid fa-play"></i> Start Service
+                                    </button>
+                                    <button id="console-stop-btn" class="btn btn-danger btn-large stop-btn" disabled>
+                                        <i class="fa-solid fa-stop"></i> Stop Service
+                                    </button>
+                                    <button id="console-restart-btn" class="btn btn-secondary btn-large restart-btn" disabled>
+                                        <i class="fa-solid fa-rotate"></i> Restart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Monitored Channels Summary -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-bullhorn"></i> Monitored Sources</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="sources-list" id="monitored-sources-summary">
+                                    <p class="empty-text">No active channels monitored. Edit settings to add sources.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= SIGNAL TESTER TAB ================= -->
+                <section class="tab-pane" id="tester-tab">
+                    <div class="tester-layout">
+                        <!-- Input Box -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-file-invoice"></i> Paste Raw Telegram Message</h2>
+                            </div>
+                            <div class="card-body flex-column">
+                                <p class="helper-text">Paste a signal formatted message from any channel (including mrsimpletrader, vip channels, or conversational formats) to check how it compiles against your configured rules.</p>
+                                <textarea id="test-signal-textarea" placeholder="e.g.&#10;XAUUSD (GOLD) SELL SETUP&#10;Entry Price: 4,527.62&#10;Stop Loss (SL): 4,531.26 (36 Pips)&#10;Target (TP): 4,517.45 (101 Pips)"></textarea>
+                                <div class="card-footer-actions">
+                                    <button id="clear-test-btn" class="btn btn-secondary">
+                                        <i class="fa-solid fa-eraser"></i> Clear
+                                    </button>
+                                    <button id="run-test-btn" class="btn btn-primary">
+                                        <i class="fa-solid fa-circle-check"></i> Parse Signal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Output Box -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-bug"></i> Extraction Output</h2>
+                            </div>
+                            <div class="card-body">
+                                <div id="test-output-placeholder" class="output-placeholder">
+                                    <i class="fa-solid fa-code"></i>
+                                    <p>Parsed result will be displayed here as raw JSON payload</p>
+                                </div>
+                                <div id="test-output-success" class="output-success hidden">
+                                    <div class="parse-badge success-badge"><i class="fa-solid fa-check-double"></i> Parsed Successfully</div>
+                                    <pre id="json-output"></pre>
+                                </div>
+                                <div id="test-output-fail" class="output-fail hidden">
+                                    <div class="parse-badge fail-badge"><i class="fa-solid fa-triangle-exclamation"></i> Parsing Failed</div>
+                                    <p class="error-msg">The message does not contain the mandatory keywords (such as BUY/SELL, or Stop Loss/SL).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= CONFIGURATION TAB ================= -->
+                <section class="tab-pane" id="config-tab">
+                    <form id="config-form" class="config-layout">
+                        <!-- Col 1: MT5 & Telegram Credentials -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-key"></i> Credentials & API Keys</h2>
+                            </div>
+                            <div class="card-body form-grid">
+                                <div class="form-group">
+                                    <label for="telegram_api_id">Telegram API ID</label>
+                                    <input type="number" id="telegram_api_id" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="telegram_api_hash">Telegram API Hash</label>
+                                    <input type="password" id="telegram_api_hash" required>
+                                </div>
+                                <div class="divider"></div>
+                                <div class="form-group">
+                                    <label for="mt5_login">MT5 Login ID (Optional)</label>
+                                    <input type="number" id="mt5_login">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mt5_password">MT5 Password (Optional)</label>
+                                    <input type="password" id="mt5_password">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mt5_server">MT5 Server Server (Optional)</label>
+                                    <input type="text" id="mt5_server">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Col 2: Settings & Lot sizing -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-gear"></i> Execution Settings</h2>
+                            </div>
+                            <div class="card-body form-grid">
+                                <div class="form-group">
+                                    <label for="default_symbol">Default Trading Symbol</label>
+                                    <input type="text" id="default_symbol" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="default_risk_percent">Default Risk per Trade (%)</label>
+                                    <input type="number" id="default_risk_percent" step="0.1" min="0.1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="magic_number">Magic Number</label>
+                                    <input type="number" id="magic_number" required>
+                                </div>
+                                <div class="form-group row-align">
+                                    <label class="switch-label" for="use_llm_parser">Use Ollama LLM Fallback</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="use_llm_parser">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Select Channels to Monitor -->
+                        <div class="details-card glass full-width">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-list-check"></i> Select Monitored Channels</h2>
+                                <button type="button" id="refresh-chats-btn" class="btn btn-secondary btn-small">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Load Active Telegram Chats
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <p class="helper-text">Select which Telegram channels or groups the bot will actively monitor for trading signals. If the list is empty, make sure the bot is running so it can connect to Telegram.</p>
+                                <div class="chats-selection-container" id="chats-selection-list">
+                                    <div class="loading-chats">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Loading channels from active Telegram session...
+                                    </div>
+                                </div>
+                                <input type="hidden" id="telegram_source_chat">
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Custom Delimiters/Keywords Configuration -->
+                        <div class="details-card glass full-width">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-tags"></i> Parse Format Keywords</h2>
+                            </div>
+                            <div class="card-body form-grid-three">
+                                <div class="form-group">
+                                    <label for="sl_keywords">Stop Loss (SL) Keywords</label>
+                                    <input type="text" id="sl_keywords" required>
+                                    <span class="field-desc">Comma-separated keyword delimiters to search for Stop Loss.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="tp_keywords">Take Profit (TP) Keywords</label>
+                                    <input type="text" id="tp_keywords" required>
+                                    <span class="field-desc">Comma-separated keyword delimiters to search for Take Profit targets.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="entry_keywords">Entry Price Keywords</label>
+                                    <input type="text" id="entry_keywords" required>
+                                    <span class="field-desc">Comma-separated keyword delimiters to search for Entry Price.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Submission -->
+                        <div class="config-actions full-width">
+                            <div id="save-status-msg" class="save-status"></div>
+                            <button type="submit" id="save-config-btn" class="btn btn-primary btn-large">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Configuration
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- ================= LOGS TAB ================= -->
+                <section class="tab-pane" id="logs-tab">
+                    <div class="details-card glass full-width log-card">
+                        <div class="card-header log-header">
+                            <h2><i class="fa-solid fa-code"></i> Live Execution Log</h2>
+                            <div class="log-controls">
+                                <label class="switch-label row-align" for="log-autoscroll">
+                                    <span>Autoscroll</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="log-autoscroll" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                </label>
+                                <button id="refresh-logs-btn" class="btn btn-secondary btn-small">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body log-container-body">
+                            <pre id="log-terminal" class="log-terminal-output"></pre>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,13 +1,14 @@
 """Main entrypoint for the Telegram-to-MT5 Signal Automation Bot.
 
 Orchestrates initialization of MT5 connection, starts the Telegram client listener,
-and routes incoming signal messages to the parser and executor.
+and routes incoming signal messages to the parser and executor. Supports Web GUI mode.
 """
 
 import sys
 import asyncio
 import logging
 import signal
+import argparse
 from typing import Dict, Any
 
 from config import config
@@ -54,10 +55,10 @@ def handle_incoming_signal(raw_text: str) -> None:
         logger.exception(f"Unexpected error executing parsed signal: {e}")
 
 
-async def main() -> None:
-    """Start the main execution loop."""
+async def run_headless() -> None:
+    """Start the main execution loop in headless mode (no GUI)."""
     logger.info("=" * 60)
-    logger.info("Starting Telegram to MT5 Signal Automation Service...")
+    logger.info("Starting Telegram to MT5 Signal Automation (Headless)...")
     logger.info("=" * 60)
 
     # 1. Initialize MetaTrader 5
@@ -100,9 +101,26 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Process terminated.")
+    # Command-line arguments
+    parser_arg = argparse.ArgumentParser(description="GrootTrade Telegram-to-MT5 Automation Bot")
+    parser_arg.add_argument("--headless", action="store_true", help="Run in headless terminal mode (no Web Dashboard)")
+    parser_arg.add_argument("--host", default="127.0.0.1", help="Host address for the Web Dashboard (default: 127.0.0.1)")
+    parser_arg.add_argument("--port", type=int, default=8000, help="Port for the Web Dashboard (default: 8000)")
+    args = parser_arg.parse_args()
+
+    if args.headless:
+        # Run standard headless terminal bot
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        try:
+            asyncio.run(run_headless())
+        except KeyboardInterrupt:
+            logger.info("Process terminated.")
+    else:
+        # Run FastAPI web dashboard (which auto-starts the bot manager)
+        from web_dashboard import run_web_server
+        logger.info("Starting GrootTrade Web Control Panel...")
+        try:
+            run_web_server(host=args.host, port=args.port)
+        except KeyboardInterrupt:
+            logger.info("Web server terminated.")
