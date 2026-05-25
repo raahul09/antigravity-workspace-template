@@ -61,9 +61,9 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     symbol = clean_symbol(symbol_match.group(1)) if symbol_match else config.default_symbol
 
     # Find Stop Loss (SL) - Required
-    # Match patterns like: SL: 2410, SL 2410, STOP LOSS 2410, STOP: 2410, STOPLOSS: 2410
+    # Match patterns: SL, S.L, S/L, STOP LOSS, STOPLOSS, STOP-LOSS, STOP_LOSS, STOP, INVALIDATION, INVALID
     sl_match = re.search(
-        r"(?:SL|STOP\s*LOSS|STOP)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"\b(?:SL|S\.L\.?|S/L|STOP\s*LOSS|STOP\-LOSS|STOP_LOSS|STOP|INVALIDATION|INVALID)(?!\w)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
         text_upper
     )
     if not sl_match:
@@ -72,9 +72,9 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     sl = float(sl_match.group(1))
 
     # Find Take Profit (TP) - Optional
-    # Match patterns like: TP: 2435, TP1: 2435, TP 2435, TARGET: 2435, TAKEPROFIT: 2435
+    # Match patterns: TP1, TP 2, TP, T.P.1, T/P1, TAKE PROFIT, TAKEPROFIT, TAKE-PROFIT, TAKE_PROFIT, TARGET1, TARGET, PROFIT1, PROFIT
     tp_match = re.search(
-        r"(?:TP1|TP\s*1|TP|TAKE\s*PROFIT|TARGET)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
+        r"\b(?:TP[1-9]|TP\s*[1-9]|T\.P\.?[1-9]|T\.P\.?\s*[1-9]|T/P[1-9]|T/P\s*[1-9]|TAKE\s*PROFIT|TAKE\-PROFIT|TAKE_PROFIT|TARGET\s*[1-9]|TARGET|PROFIT\s*[1-9]|PROFIT|TP|T\.P\.?|T/P)(?!\w)\s*(?::|-|=)?\s*(\d+(?:\.\d+)?)", 
         text_upper
     )
     tp = float(tp_match.group(1)) if tp_match else None

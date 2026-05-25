@@ -110,3 +110,27 @@ def test_invalid_messages_ignored():
     
     # Message with action and symbol, but missing mandatory Stop Loss
     assert parse_signal("BUY XAUUSD at 2400.00, looking for targets!") is None
+
+
+def test_sl_tp_combinations():
+    """Verify various spelling and formatting combinations for SL and TP."""
+    # Test s.l. and target
+    msg = "buy gold entry: 2400 s.l. 2390 target 2420"
+    res = parse_signal(msg)
+    assert res is not None
+    assert res["sl"] == 2390.0
+    assert res["tp"] == 2420.0
+
+    # Test stop-loss and take-profit
+    msg = "sell gold stop-loss 2450 take-profit 2410"
+    res = parse_signal(msg)
+    assert res is not None
+    assert res["sl"] == 2450.0
+    assert res["tp"] == 2410.0
+
+    # Test invalidation and profit
+    msg = "buy gold invalid: 2380 profit 2430"
+    res = parse_signal(msg)
+    assert res is not None
+    assert res["sl"] == 2380.0
+    assert res["tp"] == 2430.0
