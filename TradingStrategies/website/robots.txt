@@ -1,0 +1,7 @@
+# GrootTrade Robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /static/
+
+Sitemap: https://groottrade.com/sitemap.xml

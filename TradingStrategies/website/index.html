@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary SEO Meta Tags -->
+    <title>GrootTrade — Telegram to MT5 Signal Copier | Auto-Execute Trading Signals</title>
+    <meta name="description" content="GrootTrade automatically copies Telegram trading signals to MetaTrader 5 with AI parsing, risk management, TP splitting, and channel streak tracking. One-time purchase, no monthly fees.">
+    <meta name="keywords" content="telegram signal copier, MT5 copier, telegram to metatrader, forex signal copier, gold signal copier, XAUUSD copier, trading bot, auto trading, telegram trading bot, signal execution, prop firm copier, forex automation, MT5 automation, trade copier software">
+    <meta name="author" content="GrootTrade">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://groottrade.com/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://groottrade.com/">
+    <meta property="og:title" content="GrootTrade — Telegram to MT5 Signal Copier">
+    <meta property="og:description" content="Auto-execute Telegram trading signals in MetaTrader 5. AI parsing, risk management, TP splitting. One-time purchase.">
+    <meta property="og:image" content="https://groottrade.com/assets/og-preview.png">
+    <meta property="og:site_name" content="GrootTrade">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://groottrade.com/">
+    <meta name="twitter:title" content="GrootTrade — Telegram to MT5 Signal Copier">
+    <meta name="twitter:description" content="Auto-execute Telegram trading signals in MetaTrader 5. AI parsing, risk management, TP splitting. One-time purchase.">
+    <meta name="twitter:image" content="https://groottrade.com/assets/og-preview.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "GrootTrade",
+        "operatingSystem": "Windows",
+        "applicationCategory": "FinanceApplication",
+        "description": "Telegram to MetaTrader 5 signal copier with AI parsing, risk management, and automated trade execution.",
+        "offers": {
+            "@type": "Offer",
+            "price": "49.00",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "142"
+        },
+        "featureList": [
+            "AI-Powered Signal Parsing",
+            "Risk Management Engine",
+            "TP Splitter with Auto Break-Even",
+            "Channel Streak Tracking",
+            "Hardware-Bound Licensing",
+            "Web Dashboard"
+        ]
+    }
+    </script>
+
+    <!-- FAQ Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is GrootTrade?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "GrootTrade is a desktop application that automatically copies trading signals from Telegram channels to your MetaTrader 5 terminal. It uses AI-powered parsing to extract trade details (symbol, action, entry, SL, TP) and executes them with advanced risk management."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does GrootTrade require a VPS or monthly subscription?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. GrootTrade runs locally on your Windows PC and connects directly to MetaTrader 5. There are no monthly fees, no VPS required, and no third-party API dependencies like MetaAPI."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What trading signals can GrootTrade parse?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "GrootTrade supports multiple signal formats including structured signals, conversational formats, and MrSimpleTrader-style messages. It uses regex pattern matching with an optional LLM fallback (Ollama) for unusual formats."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is GrootTrade safe for prop firm accounts?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. GrootTrade includes daily drawdown guards, maximum concurrent trade limits, entry slippage protection, and auto-pause circuit breakers. These features help protect prop firm accounts from exceeding risk limits."
+                }
+            }
+        ]
+    }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#" class="nav-logo" aria-label="GrootTrade Home">
+                <i class="fa-solid fa-bolt logo-icon"></i>
+                <span class="logo-text">Groot<span>Trade</span></span>
+            </a>
+            <div class="nav-links" id="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How It Works</a>
+                <a href="#risk" class="nav-link">Risk Engine</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+            </div>
+            <div class="nav-actions">
+                <a href="#pricing" class="btn btn-primary nav-cta">Get Started</a>
+                <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="hero">
+        <div class="hero-bg-effects">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+            <div class="grid-overlay"></div>
+        </div>
+        <div class="container hero-content">
+            <div class="hero-badge">
+                <i class="fa-solid fa-bolt"></i>
+                <span>No Monthly Fees — One-Time Purchase</span>
+            </div>
+            <h1 class="hero-title">
+                Auto-Execute <span class="gradient-text">Telegram Signals</span>
+                <br>in MetaTrader 5
+            </h1>
+            <p class="hero-subtitle">
+                GrootTrade copies trading signals from any Telegram channel to your MT5 terminal in milliseconds.
+                AI-powered parsing, advanced risk management, and a premium web dashboard — all running locally on your PC.
+            </p>
+            <div class="hero-actions">
+                <a href="#pricing" class="btn btn-primary btn-large hero-cta">
+                    <i class="fa-solid fa-download"></i> Download Now — $49
+                </a>
+                <a href="#how-it-works" class="btn btn-outline btn-large">
+                    <i class="fa-solid fa-play"></i> See How It Works
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-value">< 50ms</span>
+                    <span class="stat-label">Execution Speed</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-value">100+</span>
+                    <span class="stat-label">Signal Formats</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-value">$0/mo</span>
+                    <span class="stat-label">Running Cost</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-value">24/7</span>
+                    <span class="stat-label">Monitoring</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="dashboard-preview glass-card">
+                <div class="preview-header">
+                    <div class="preview-dots">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <span class="preview-title">GrootTrade Dashboard — Live</span>
+                </div>
+                <div class="preview-body">
+                    <div class="preview-sidebar">
+                        <div class="preview-menu-item active"><i class="fa-solid fa-chart-line"></i></div>
+                        <div class="preview-menu-item"><i class="fa-solid fa-vial"></i></div>
+                        <div class="preview-menu-item"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div class="preview-menu-item"><i class="fa-solid fa-sliders"></i></div>
+                        <div class="preview-menu-item"><i class="fa-solid fa-key"></i></div>
+                    </div>
+                    <div class="preview-content">
+                        <div class="preview-cards">
+                            <div class="mini-card tg">
+                                <div class="mini-card-icon"><i class="fa-brands fa-telegram"></i></div>
+                                <div class="mini-card-info">
+                                    <span class="mini-label">Telegram</span>
+                                    <span class="mini-value connected">Connected</span>
+                                </div>
+                            </div>
+                            <div class="mini-card mt5">
+                                <div class="mini-card-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                                <div class="mini-card-info">
+                                    <span class="mini-label">MetaTrader 5</span>
+                                    <span class="mini-value connected">Connected</span>
+                                </div>
+                            </div>
+                            <div class="mini-card bot">
+                                <div class="mini-card-icon"><i class="fa-solid fa-robot"></i></div>
+                                <div class="mini-card-info">
+                                    <span class="mini-label">Bot Status</span>
+                                    <span class="mini-value running">Running</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="preview-signal-feed">
+                            <div class="signal-entry buy animate-in">
+                                <span class="signal-badge buy-badge">BUY</span>
+                                <span class="signal-symbol">XAUUSD</span>
+                                <span class="signal-detail">@ 2,347.50 → TP: 2,362.00</span>
+                                <span class="signal-status"><i class="fa-solid fa-check-circle"></i> Filled</span>
+                            </div>
+                            <div class="signal-entry sell animate-in delay-1">
+                                <span class="signal-badge sell-badge">SELL</span>
+                                <span class="signal-symbol">EURUSD</span>
+                                <span class="signal-detail">@ 1.0842 → TP: 1.0790</span>
+                                <span class="signal-status"><i class="fa-solid fa-check-circle"></i> Filled</span>
+                            </div>
+                            <div class="signal-entry buy animate-in delay-2">
+                                <span class="signal-badge buy-badge">BUY</span>
+                                <span class="signal-symbol">GBPJPY</span>
+                                <span class="signal-detail">@ 192.450 → TP: 193.100</span>
+                                <span class="signal-status pending"><i class="fa-solid fa-clock"></i> Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Trusted By / Social Proof -->
+    <section class="social-proof">
+        <div class="container">
+            <p class="proof-label">Trusted by Traders Using Signals From</p>
+            <div class="proof-logos">
+                <div class="proof-item">
+                    <i class="fa-brands fa-telegram"></i>
+                    <span>VIP Channels</span>
+                </div>
+                <div class="proof-item">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>MrSimpleTrader</span>
+                </div>
+                <div class="proof-item">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Gold Signals</span>
+                </div>
+                <div class="proof-item">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                    <span>Forex VIP</span>
+                </div>
+                <div class="proof-item">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Private Groups</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Features</span>
+                <h2 class="section-title">Everything You Need to <span class="gradient-text">Automate Trading</span></h2>
+                <p class="section-subtitle">From signal parsing to trade execution, GrootTrade handles the entire pipeline with precision and speed.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card glass-card" id="feature-ai-parsing">
+                    <div class="feature-icon-wrap cyan">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h3>AI-Powered Signal Parsing</h3>
+                    <p>Dual-parser architecture: regex pattern matching for structured signals + local LLM fallback (Ollama/Llama 3.2) for unusual formats. Handles MrSimpleTrader, VIP channels, conversational signals, and more.</p>
+                    <ul class="feature-list">
+                        <li><i class="fa-solid fa-check"></i> Auto-detects BUY/SELL/LONG/SHORT</li>
+                        <li><i class="fa-solid fa-check"></i> Extracts Entry, SL, TP automatically</li>
+                        <li><i class="fa-solid fa-check"></i> Symbol normalization (GOLD → XAUUSD)</li>
+                        <li><i class="fa-solid fa-check"></i> Customizable keyword triggers</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card glass-card" id="feature-execution">
+                    <div class="feature-icon-wrap purple">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <h3>Instant Trade Execution</h3>
+                    <p>Direct MT5 connection — no MetaAPI, no cloud middleman. Market orders execute in under 50ms. Smart fallback from market to pending if price moves.</p>
+                    <ul class="feature-list">
+                        <li><i class="fa-solid fa-check"></i> Direct MetaTrader 5 API</li>
+                        <li><i class="fa-solid fa-check"></i> Market + Pending order support</li>
+                        <li><i class="fa-solid fa-check"></i> Auto-fallback to limit orders</li>
+                        <li><i class="fa-solid fa-check"></i> Lot normalization to broker specs</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card glass-card" id="feature-tp-splitter">
+                    <div class="feature-icon-wrap green">
+                        <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                    </div>
+                    <h3>TP Splitter Engine</h3>
+                    <p>Split positions across up to 3 take-profit levels with configurable volume allocation. Auto-move SL to break-even when TP1 hits.</p>
+                    <ul class="feature-list">
+                        <li><i class="fa-solid fa-check"></i> Multi-ticket or single-ticket partial close</li>
+                        <li><i class="fa-solid fa-check"></i> Configurable 50/30/20 allocation</li>
+                        <li><i class="fa-solid fa-check"></i> Auto break-even on TP1 hit</li>
+                        <li><i class="fa-solid fa-check"></i> Smart TP generation if only 1 TP provided</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card glass-card" id="feature-multi-channel">
+                    <div class="feature-icon-wrap orange">
+                        <i class="fa-solid fa-tower-broadcast"></i>
+                    </div>
+                    <h3>Multi-Channel Monitoring</h3>
+                    <p>Monitor unlimited Telegram channels, groups, and private chats simultaneously. Select sources from a visual checklist in the dashboard.</p>
+                    <ul class="feature-list">
+                        <li><i class="fa-solid fa-check"></i> Unlimited channel monitoring</li>
+                        <li><i class="fa-solid fa-check"></i> Channels, Groups & DMs</li>
+                        <li><i class="fa-solid fa-check"></i> Visual channel selector</li>
+                        <li><i class="fa-solid fa-check"></i> Per-channel performance tracking</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card glass-card" id="feature-dashboard">
+                    <div class="feature-icon-wrap pink">
+                        <i class="fa-solid fa-display"></i>
+                    </div>
+                    <h3>Premium Web Dashboard</h3>
+                    <p>Beautiful glassmorphism dark-mode dashboard with real-time status monitoring, live logs, signal tester, and full configuration controls.</p>
+                    <ul class="feature-list">
+                        <li><i class="fa-solid fa-check"></i> Real-time status indicators</li>
+                        <li><i class="fa-solid fa-check"></i> Live execution log viewer</li>
+                        <li><i class="fa-solid fa-check"></i> Signal tester / parser debugger</li>
+                        <li><i class="fa-solid fa-check"></i> Start/Stop/Restart controls</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card glass-card" id="feature-licensing">
+                    <div class="feature-icon-wrap red">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h3>Hardware-Bound Licensing</h3>
+                    <p>Enterprise-grade license system with machine fingerprinting, HMAC-SHA256 cryptographic signatures, and time-based expiry. Fully offline.</p>
+                    <ul class="feature-list">
+                        <li><i class="fa-solid fa-check"></i> Machine ID fingerprinting</li>
+                        <li><i class="fa-solid fa-check"></i> Tamper-proof signatures</li>
+                        <li><i class="fa-solid fa-check"></i> Monthly/Yearly expiry options</li>
+                        <li><i class="fa-solid fa-check"></i> No internet required</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Setup</span>
+                <h2 class="section-title">Up and Running in <span class="gradient-text">3 Minutes</span></h2>
+                <p class="section-subtitle">No VPS, no cloud subscriptions, no MetaAPI. Just download, configure, and trade.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">01</div>
+                    <div class="step-icon"><i class="fa-solid fa-download"></i></div>
+                    <h3>Download & Launch</h3>
+                    <p>Download GrootTrade.exe. Double-click to launch. The web dashboard opens automatically in your browser.</p>
+                </div>
+                <div class="step-connector"><i class="fa-solid fa-arrow-right"></i></div>
+                <div class="step-card">
+                    <div class="step-number">02</div>
+                    <div class="step-icon"><i class="fa-solid fa-gear"></i></div>
+                    <h3>Configure & Connect</h3>
+                    <p>Enter your Telegram API credentials and MT5 account details. Select which channels to monitor from the visual selector.</p>
+                </div>
+                <div class="step-connector"><i class="fa-solid fa-arrow-right"></i></div>
+                <div class="step-card">
+                    <div class="step-number">03</div>
+                    <div class="step-icon"><i class="fa-solid fa-rocket"></i></div>
+                    <h3>Start Trading</h3>
+                    <p>Click Start. GrootTrade monitors your selected channels 24/7 and auto-executes every valid signal with your risk settings.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Risk Management Engine -->
+    <section class="risk-engine" id="risk">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Risk Engine</span>
+                <h2 class="section-title">Built-in <span class="gradient-text">Circuit Breakers</span> Protect Your Capital</h2>
+                <p class="section-subtitle">GrootTrade's risk management engine runs 7 independent safety checks before every trade execution.</p>
+            </div>
+            <div class="risk-grid">
+                <div class="risk-item glass-card">
+                    <div class="risk-icon"><i class="fa-solid fa-calculator"></i></div>
+                    <h4>Position Sizing Engine</h4>
+                    <p>Fixed lot or percentage-risk mode with automatic lot normalization to your broker's step size and volume limits.</p>
+                </div>
+                <div class="risk-item glass-card">
+                    <div class="risk-icon"><i class="fa-solid fa-chart-area"></i></div>
+                    <h4>Daily Drawdown Guard</h4>
+                    <p>Tracks equity high-water mark. Rejects new trades if daily drawdown exceeds your configured limit (e.g., 5%).</p>
+                </div>
+                <div class="risk-item glass-card">
+                    <div class="risk-icon"><i class="fa-solid fa-layer-group"></i></div>
+                    <h4>Max Concurrent Trades</h4>
+                    <p>Limits simultaneous open positions. Prevents over-exposure during volatile sessions or rapid signal bursts.</p>
+                </div>
+                <div class="risk-item glass-card">
+                    <div class="risk-icon"><i class="fa-solid fa-gauge-high"></i></div>
+                    <h4>Entry Slippage Guard</h4>
+                    <p>Rejects signals if market price has moved too far from the signal's entry price. Configurable pip threshold.</p>
+                </div>
+                <div class="risk-item glass-card">
+                    <div class="risk-icon"><i class="fa-solid fa-fire"></i></div>
+                    <h4>Channel Streak Tracking</h4>
+                    <p>Tracks consecutive wins and losses per channel. Visual fire/warning badges in the dashboard.</p>
+                </div>
+                <div class="risk-item glass-card">
+                    <div class="risk-icon"><i class="fa-solid fa-circle-pause"></i></div>
+                    <h4>Auto-Pause Circuit Breaker</h4>
+                    <p>Automatically pauses a channel when its loss streak hits your threshold. Prevents chasing bad signals.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison" id="comparison">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Why GrootTrade</span>
+                <h2 class="section-title">Stop Paying <span class="gradient-text">Monthly Fees</span> for Signal Copying</h2>
+                <p class="section-subtitle">Most copiers charge $30-99/month plus MetaAPI costs. GrootTrade is a one-time purchase with zero recurring fees.</p>
+            </div>
+            <div class="comparison-table-wrap glass-card">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th class="highlight-col"><i class="fa-solid fa-bolt"></i> GrootTrade</th>
+                            <th>Cloud Copiers</th>
+                            <th>Other Desktop</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Monthly Cost</td>
+                            <td class="highlight-col"><strong class="accent">$0/mo</strong></td>
+                            <td>$30-99/mo</td>
+                            <td>$0-20/mo</td>
+                        </tr>
+                        <tr>
+                            <td>Requires MetaAPI</td>
+                            <td class="highlight-col"><i class="fa-solid fa-xmark no"></i> No</td>
+                            <td><i class="fa-solid fa-check yes"></i> Yes (+$15-50/mo)</td>
+                            <td><i class="fa-solid fa-xmark no"></i> No</td>
+                        </tr>
+                        <tr>
+                            <td>AI Signal Parsing</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> Regex + LLM</td>
+                            <td><i class="fa-solid fa-check yes"></i> AI</td>
+                            <td><i class="fa-solid fa-minus neutral"></i> Regex only</td>
+                        </tr>
+                        <tr>
+                            <td>TP Splitter Engine</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> 3-level split</td>
+                            <td><i class="fa-solid fa-minus neutral"></i> Basic</td>
+                            <td><i class="fa-solid fa-xmark no"></i> No</td>
+                        </tr>
+                        <tr>
+                            <td>Auto Break-Even</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> On TP1</td>
+                            <td><i class="fa-solid fa-check yes"></i> Yes</td>
+                            <td><i class="fa-solid fa-xmark no"></i> No</td>
+                        </tr>
+                        <tr>
+                            <td>Channel Streak Tracking</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> Unique</td>
+                            <td><i class="fa-solid fa-xmark no"></i> No</td>
+                            <td><i class="fa-solid fa-xmark no"></i> No</td>
+                        </tr>
+                        <tr>
+                            <td>Circuit Breakers</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> 6 checks</td>
+                            <td><i class="fa-solid fa-minus neutral"></i> Basic</td>
+                            <td><i class="fa-solid fa-xmark no"></i> No</td>
+                        </tr>
+                        <tr>
+                            <td>Web Dashboard</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> Premium</td>
+                            <td><i class="fa-solid fa-check yes"></i> Yes</td>
+                            <td><i class="fa-solid fa-minus neutral"></i> Basic</td>
+                        </tr>
+                        <tr>
+                            <td>Runs Offline</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> Yes</td>
+                            <td><i class="fa-solid fa-xmark no"></i> Cloud only</td>
+                            <td><i class="fa-solid fa-check yes"></i> Yes</td>
+                        </tr>
+                        <tr>
+                            <td>Data Privacy</td>
+                            <td class="highlight-col"><i class="fa-solid fa-check yes"></i> Local only</td>
+                            <td><i class="fa-solid fa-xmark no"></i> Shared cloud</td>
+                            <td><i class="fa-solid fa-check yes"></i> Local only</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">Pricing</span>
+                <h2 class="section-title">Simple, <span class="gradient-text">Transparent</span> Pricing</h2>
+                <p class="section-subtitle">No hidden fees. No MetaAPI subscriptions. No VPS costs. Just one purchase.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card glass-card" id="plan-monthly">
+                    <div class="plan-header">
+                        <h3>Monthly</h3>
+                        <p class="plan-desc">Perfect for trying it out</p>
+                    </div>
+                    <div class="plan-price">
+                        <span class="currency">$</span>
+                        <span class="amount">9</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li><i class="fa-solid fa-check"></i> Full feature access</li>
+                        <li><i class="fa-solid fa-check"></i> Web dashboard</li>
+                        <li><i class="fa-solid fa-check"></i> Risk management engine</li>
+                        <li><i class="fa-solid fa-check"></i> AI parsing + LLM fallback</li>
+                        <li><i class="fa-solid fa-check"></i> Unlimited channels</li>
+                        <li><i class="fa-solid fa-check"></i> Email support</li>
+                    </ul>
+                    <a href="#" class="btn btn-outline btn-full" id="buy-monthly">Choose Monthly</a>
+                </div>
+
+                <div class="pricing-card glass-card featured" id="plan-lifetime">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="plan-header">
+                        <h3>Lifetime</h3>
+                        <p class="plan-desc">One-time purchase, forever</p>
+                    </div>
+                    <div class="plan-price">
+                        <span class="currency">$</span>
+                        <span class="amount">49</span>
+                        <span class="period">one-time</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li><i class="fa-solid fa-check"></i> <strong>Everything in Monthly</strong></li>
+                        <li><i class="fa-solid fa-check"></i> Lifetime license key</li>
+                        <li><i class="fa-solid fa-check"></i> All future updates included</li>
+                        <li><i class="fa-solid fa-check"></i> Priority support</li>
+                        <li><i class="fa-solid fa-check"></i> TP Splitter engine</li>
+                        <li><i class="fa-solid fa-check"></i> Channel streak tracking</li>
+                        <li><i class="fa-solid fa-check"></i> PyInstaller .exe build</li>
+                    </ul>
+                    <a href="#" class="btn btn-primary btn-full" id="buy-lifetime">Get Lifetime Access</a>
+                </div>
+
+                <div class="pricing-card glass-card" id="plan-yearly">
+                    <div class="plan-header">
+                        <h3>Annual</h3>
+                        <p class="plan-desc">Save 33% vs monthly</p>
+                    </div>
+                    <div class="plan-price">
+                        <span class="currency">$</span>
+                        <span class="amount">72</span>
+                        <span class="period">/year</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li><i class="fa-solid fa-check"></i> Full feature access</li>
+                        <li><i class="fa-solid fa-check"></i> Web dashboard</li>
+                        <li><i class="fa-solid fa-check"></i> Risk management engine</li>
+                        <li><i class="fa-solid fa-check"></i> AI parsing + LLM fallback</li>
+                        <li><i class="fa-solid fa-check"></i> Unlimited channels</li>
+                        <li><i class="fa-solid fa-check"></i> Priority support</li>
+                    </ul>
+                    <a href="#" class="btn btn-outline btn-full" id="buy-yearly">Choose Annual</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-badge">FAQ</span>
+                <h2 class="section-title">Frequently Asked <span class="gradient-text">Questions</span></h2>
+            </div>
+            <div class="faq-grid">
+                <div class="faq-item glass-card" id="faq-1">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>What is GrootTrade?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>GrootTrade is a desktop application that automatically copies trading signals from Telegram channels to your MetaTrader 5 terminal. It uses AI-powered parsing to extract trade details (symbol, action, entry, SL, TP) and executes them with advanced risk management controls.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-2">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Do I need a VPS or monthly subscription?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No. GrootTrade runs locally on your Windows PC and connects directly to MetaTrader 5. There are no monthly fees, no VPS required, and no third-party API dependencies like MetaAPI. Your computer just needs to be running while you want to copy signals.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-3">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Which signal formats does GrootTrade support?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>GrootTrade supports structured signals, conversational formats, MrSimpleTrader-style messages, and over 100+ format variations. The regex engine handles most patterns automatically. For unusual formats, the optional LLM fallback (using local Ollama with Llama 3.2) provides additional coverage. You can also customize the keyword triggers (SL, TP, Entry keywords) from the dashboard.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-4">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Is it safe for prop firm accounts (FTMO, MyFundedFx)?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes. GrootTrade includes daily drawdown guards, maximum concurrent trade limits, entry slippage protection, and auto-pause circuit breakers. These features help protect prop firm accounts from exceeding risk limits. You can configure a daily drawdown percentage threshold that will automatically stop trading if breached.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-5">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>How does the TP Splitter work?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The TP Splitter divides your position across up to 3 take-profit levels with configurable volume allocation (e.g., 50% at TP1, 30% at TP2, 20% at TP3). It supports two modes: Multiple Tickets (3 separate orders) or Single Ticket with Partial Closes. When TP1 is hit, it automatically moves your stop loss to break-even to protect profits.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-6">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Can I monitor multiple Telegram channels?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes, you can monitor unlimited Telegram channels, groups, and private chats simultaneously. Each channel gets its own magic number for tracking, and the dashboard shows per-channel win/loss streaks so you can evaluate which channels perform best.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-7">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>What are the system requirements?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Windows 10 or later, MetaTrader 5 terminal installed and logged in, a Telegram account with API credentials (free from my.telegram.org), and an internet connection. The application runs as a lightweight .exe file and uses minimal system resources.</p>
+                    </div>
+                </div>
+                <div class="faq-item glass-card" id="faq-8">
+                    <button class="faq-question" aria-expanded="false">
+                        <span>Can I share my license key with others?</span>
+                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No. Each license key is hardware-bound to a specific computer using machine fingerprinting (WMIC motherboard UUID + MAC address). If you try to use a key on a different machine, activation will be rejected with a "License is locked to another computer" error.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-card glass-card">
+                <div class="cta-content">
+                    <h2>Ready to Automate Your Trading?</h2>
+                    <p>Stop manually copying signals. Let GrootTrade execute trades in milliseconds while you sleep, work, or enjoy life.</p>
+                    <div class="cta-actions">
+                        <a href="#pricing" class="btn btn-primary btn-large">
+                            <i class="fa-solid fa-download"></i> Get GrootTrade — $49
+                        </a>
+                    </div>
+                    <p class="cta-guarantee"><i class="fa-solid fa-shield-check"></i> 7-day money-back guarantee. No questions asked.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer" id="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="nav-logo">
+                        <i class="fa-solid fa-bolt logo-icon"></i>
+                        <span class="logo-text">Groot<span>Trade</span></span>
+                    </a>
+                    <p>The most powerful self-hosted Telegram-to-MT5 signal copier. No monthly fees, no cloud dependencies.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+                <div class="footer-links">
+                    <h4>Resources</h4>
+                    <a href="#">Documentation</a>
+                    <a href="#">Setup Guide</a>
+                    <a href="#">Signal Format Examples</a>
+                    <a href="#">Telegram API Guide</a>
+                </div>
+                <div class="footer-links">
+                    <h4>Legal</h4>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Refund Policy</a>
+                    <a href="#">Risk Disclaimer</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 GrootTrade. All rights reserved. Trading involves risk. Past performance is not indicative of future results.</p>
+                <div class="footer-social">
+                    <a href="#" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
+                    <a href="#" aria-label="Discord"><i class="fa-brands fa-discord"></i></a>
+                    <a href="#" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
