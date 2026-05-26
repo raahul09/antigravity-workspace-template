@@ -1,7 +1,7 @@
 """Tests for the Licensing System.
 
 Verifies that license keys are correctly generated, validated, stored, and 
-rejected if expired or tampered with.
+rejected if expired, tampered with, or generated for a different machine ID.
 """
 
 import os
@@ -46,9 +46,10 @@ def test_license_generation_and_verification():
     """Verify that a valid license key generates and validates successfully."""
     email = "client_A@email.com"
     days = 10
+    machine_id = license_manager.get_machine_id()
     
     # 1. Generate key
-    key = generate_key(email, days)
+    key = generate_key(email, days, machine_id)
     assert key != ""
     
     # 2. Verify key
@@ -60,23 +61,40 @@ def test_license_generation_and_verification():
     assert expiry_str == expected_expiry
 
 
+def test_machine_mismatch_license_rejection():
+    """Verify that a license key generated for another machine is rejected."""
+    email = "client_B@email.com"
+    days = 30
+    fake_machine_id = "FAKE-ID-9999-8888"
+    
+    # Generate key for another machine
+    key = generate_key(email, days, fake_machine_id)
+    
+    # Verify key on this local machine
+    is_valid, reason, _ = license_manager.verify_license_key(key)
+    assert is_valid is False
+    assert "locked to another computer" in reason.lower()
+
+
 def test_expired_license_rejection():
     """Verify that an expired license key is correctly rejected."""
     email = "expired_user@email.com"
+    machine_id = license_manager.get_machine_id()
+    
     # Generate an expired key manually by overriding signature and expiry date
     import hmac
     import hashlib
     import base64
     
     past_expiry = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-    message = f"{email}|{past_expiry}".encode('utf-8')
+    message = f"{email}|{past_expiry}|{machine_id}".encode('utf-8')
     sig = hmac.new(
         license_manager.SECRET_SALT.encode('utf-8'),
         message,
         hashlib.sha256
     ).hexdigest()
     
-    raw_key = f"{email}|{past_expiry}|{sig}"
+    raw_key = f"{email}|{past_expiry}|{machine_id}|{sig}"
     key = base64.b64encode(raw_key.encode('utf-8')).decode('utf-8')
     
     # Verify key
@@ -88,7 +106,8 @@ def test_expired_license_rejection():
 def test_tampered_license_rejection():
     """Verify that any tampering or signature mismatch is detected."""
     email = "hacker@email.com"
-    key = generate_key(email, 30)
+    machine_id = license_manager.get_machine_id()
+    key = generate_key(email, 30, machine_id)
     
     # Decode and tamper with the date
     import base64
@@ -117,7 +136,7 @@ def test_license_status_inactive():
     assert status["licensee"] == "None"
     
     # Save dummy key
-    with open(TEST_LICENSE_FILE, "w") as f:
+    with open(TEST_LICENSE_FILE, "w", encoding="utf-8") as f:
         f.write("invalid_base64_string_here")
         
     status = license_manager.get_license_status()
@@ -127,7 +146,8 @@ def test_license_status_inactive():
 
 def test_license_save_and_load():
     """Verify saving and loading of license keys."""
-    key = generate_key("save_load_test@email.com", 15)
+    machine_id = license_manager.get_machine_id()
+    key = generate_key("save_load_test@email.com", 15, machine_id)
     
     success = license_manager.save_license_key(key)
     assert success is True

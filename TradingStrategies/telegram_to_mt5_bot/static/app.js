@@ -770,6 +770,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const licenseKeyInput = document.getElementById("license-key-input");
     const activateLicenseBtn = document.getElementById("activate-license-btn");
     const licenseActivationMsg = document.getElementById("license-activation-msg");
+    const machineIdDisplay = document.getElementById("machine-id-display");
+    const copyMachineIdBtn = document.getElementById("copy-machine-id-btn");
+
+    async function fetchMachineId() {
+        if (!machineIdDisplay) return;
+        try {
+            const res = await fetch("/api/license/machine-id");
+            const data = await res.json();
+            if (data.machine_id) {
+                machineIdDisplay.value = data.machine_id;
+            }
+        } catch (err) {
+            console.error("Error fetching machine ID:", err);
+            machineIdDisplay.value = "Error retrieving ID";
+        }
+    }
+
+    if (copyMachineIdBtn && machineIdDisplay) {
+        copyMachineIdBtn.addEventListener("click", () => {
+            navigator.clipboard.writeText(machineIdDisplay.value);
+            const origHTML = copyMachineIdBtn.innerHTML;
+            copyMachineIdBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => {
+                copyMachineIdBtn.innerHTML = origHTML;
+            }, 2000);
+        });
+    }
 
     async function fetchLicenseStatus() {
         try {
@@ -883,6 +910,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize application
     async function initApp() {
+        await fetchMachineId();
         const isLicensed = await fetchLicenseStatus();
         await updateStatus();
         startStatusPolling();

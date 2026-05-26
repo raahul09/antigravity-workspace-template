@@ -445,6 +445,15 @@
                                 <h2><i class="fa-solid fa-key"></i> Activate Software License</h2>
                             </div>
                             <div class="card-body flex-column">
+                                <div class="form-group" style="margin-bottom: 16px;">
+                                    <label>Your Local Machine ID (Required for Key Generation):</label>
+                                    <div class="input-group">
+                                        <input type="text" id="machine-id-display" readonly style="font-family: monospace; font-weight: bold; color: var(--color-primary);" value="Retrieving...">
+                                        <button type="button" id="copy-machine-id-btn" class="input-group-suffix btn" style="border: none; background: rgba(0, 242, 254, 0.1); cursor: pointer; color: var(--color-primary); font-size: 12px; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-copy"></i> Copy ID
+                                        </button>
+                                    </div>
+                                </div>
                                 <p class="helper-text">Enter your cryptographically signed product activation license key below. If you don't have one, please contact your administrator or purchase a subscription.</p>
                                 <textarea id="license-key-input" placeholder="Paste your Base64 license key here..." style="height: 120px; font-family: monospace; margin-bottom: 12px;"></textarea>
                                 <div class="card-footer-actions" style="margin-top: 0;">

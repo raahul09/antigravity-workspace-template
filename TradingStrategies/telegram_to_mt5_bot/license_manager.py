@@ -10,6 +10,8 @@ import hashlib
 import base64
 import datetime
 import logging
+import subprocess
+import uuid
 from typing import Tuple, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -18,8 +20,26 @@ SECRET_SALT = "groot_trade_secret_license_salt_9988"
 LICENSE_FILE = ".license"
 
 
+def get_machine_id() -> str:
+    """Retrieve a unique, stable hardware fingerprint for Windows."""
+    try:
+        # Query Windows Management Instrumentation for motherboard UUID
+        cmd = "wmic csproduct get uuid"
+        output = subprocess.check_output(cmd, shell=True).decode().split()
+        if len(output) >= 2:
+            raw_id = output[1].strip()
+            if raw_id and "uuid" not in raw_id.lower() and len(raw_id) > 5:
+                return hashlib.sha256(raw_id.encode('utf-8')).hexdigest()[:16].upper()
+    except Exception as e:
+        logger.warning(f"Could not retrieve WMI motherboard UUID: {e}")
+    
+    # Fallback to hashed MAC address
+    mac = str(uuid.getnode())
+    return hashlib.sha256(mac.encode('utf-8')).hexdigest()[:16].upper()
+
+
 def verify_license_key(key: str) -> Tuple[bool, str, str]:
-    """Decode and cryptographically verify a license key.
+    """Decode and cryptographically verify a hardware-bound license key.
 
     Args:
         key: Base64 encoded license key string.
@@ -38,21 +58,22 @@ def verify_license_key(key: str) -> Tuple[bool, str, str]:
         decoded_bytes = base64.b64decode(key.encode('utf-8'), validate=True)
         decoded_str = decoded_bytes.decode('utf-8')
         
-        # 2. Split into segments: email | expiry | signature
+        # 2. Split into segments: email | expiry | machine_id | signature
         parts = decoded_str.split("|")
-        if len(parts) != 3:
-            return False, "Invalid license key format", ""
+        if len(parts) != 4:
+            return False, "Invalid license key format (must contain 4 segments)", ""
             
-        email, expiry_str, signature = parts
+        email, expiry_str, machine_id, signature = parts
         email = email.strip()
         expiry_str = expiry_str.strip()
+        machine_id = machine_id.strip()
         signature = signature.strip()
         
-        if not email or not expiry_str or not signature:
+        if not email or not expiry_str or not machine_id or not signature:
             return False, "Malformed license segments", ""
 
         # 3. Verify signature
-        message = f"{email}|{expiry_str}".encode('utf-8')
+        message = f"{email}|{expiry_str}|{machine_id}".encode('utf-8')
         expected_sig = hmac.new(
             SECRET_SALT.encode('utf-8'),
             message,
@@ -62,7 +83,12 @@ def verify_license_key(key: str) -> Tuple[bool, str, str]:
         if not hmac.compare_digest(signature, expected_sig):
             return False, "License key signature mismatch (tempered or invalid)", ""
 
-        # 4. Check expiration date
+        # 4. Verify machine ID matches current local computer ID
+        current_id = get_machine_id()
+        if machine_id != current_id:
+            return False, f"License is locked to another computer (ID: {machine_id})", ""
+
+        # 5. Check expiration date
         expiry_date = datetime.datetime.strptime(expiry_str, "%Y-%m-%d").date()
         today = datetime.date.today()
         

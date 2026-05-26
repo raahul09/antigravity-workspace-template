@@ -457,6 +457,15 @@ async def get_license_status():
         raise HTTPException(status_code=500, detail=f"Failed to retrieve license details: {str(e)}")
 
 
+@app.get("/api/license/machine-id")
+async def get_license_machine_id():
+    """Retrieve local computer unique hardware ID."""
+    try:
+        return {"machine_id": license_manager.get_machine_id()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve machine ID: {str(e)}")
+
+
 @app.post("/api/license/activate")
 async def activate_license(req: LicenseActivateRequest):
     """Attempt to activate the bot with a license key."""
