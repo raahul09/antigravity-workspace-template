@@ -964,3 +964,200 @@ input:checked + .slider:before {
     margin-top: 16px;
 }
 
+/* Custom Select Dropdowns Chevron Wrapper */
+.select-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.select-wrapper select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    padding: 10px 40px 10px 14px;
+    border-radius: 8px;
+    color: var(--text-main);
+    font-size: 14px;
+    outline: none;
+    transition: border-color var(--transition-speed) ease;
+    cursor: pointer;
+}
+
+.select-wrapper select:focus {
+    border-color: var(--color-primary);
+}
+
+.select-wrapper::after {
+    content: "\f078"; /* FontAwesome chevron-down */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+    pointer-events: none;
+    transition: color var(--transition-speed) ease;
+}
+
+.select-wrapper:hover::after {
+    color: var(--color-primary);
+}
+
+/* Premium Suffix Input Groups */
+.input-group {
+    display: flex;
+    align-items: stretch;
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color var(--transition-speed) ease;
+}
+
+.input-group:focus-within {
+    border-color: var(--color-primary);
+}
+
+.input-group input {
+    flex: 1;
+    background: none !important;
+    border: none !important;
+    padding: 10px 14px;
+    color: var(--text-main);
+    font-size: 14px;
+    outline: none;
+}
+
+.input-group-suffix {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-left: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+}
+
+/* Greyed Out Disabled Fields (Prevent Layout Popping) */
+.form-group.disabled {
+    opacity: 0.45;
+}
+
+.form-group.disabled input,
+.form-group.disabled select,
+.form-group.disabled .input-group,
+.form-group.disabled .select-wrapper {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.form-group.disabled input,
+.form-group.disabled select {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+    border-color: rgba(255, 255, 255, 0.04) !important;
+    color: var(--text-dark) !important;
+}
+
+/* Streak Badges */
+.streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.streak-badge.wins {
+    background-color: rgba(0, 230, 118, 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(0, 230, 118, 0.25);
+    animation: pulse-glow-green 2s infinite;
+}
+
+.streak-badge.losses {
+    background-color: rgba(255, 23, 68, 0.1);
+    color: var(--color-danger);
+    border: 1px solid rgba(255, 23, 68, 0.25);
+}
+
+@keyframes pulse-glow-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.2);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(0, 230, 118, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 230, 118, 0);
+    }
+}
+
+/* Tool Activation Status & Lockout Styles */
+.license-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 10px 0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.info-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.license-desc-text p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* UI Locking system */
+body.license-locked .sidebar-menu .menu-item:not([data-tab="license"]) {
+    pointer-events: none;
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+body.license-locked #sidebar-toggle-btn,
+body.license-locked #console-start-btn,
+body.license-locked #console-stop-btn,
+body.license-locked #console-restart-btn {
+    pointer-events: none !important;
+    opacity: 0.2 !important;
+    cursor: not-allowed !important;
+}
+
+body.license-locked .header-status-pills {
+    opacity: 0.5;
+}
+

@@ -38,6 +38,11 @@
                     <i class="fa-solid fa-sliders"></i>
                     <span>Settings</span>
                 </button>
+                <button class="menu-item" data-tab="license" id="menu-license-btn">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Tool Activation</span>
+                    <span class="badge badge-paused" id="license-badge-status" style="margin-left: auto; font-size: 9px; padding: 2px 6px;">Unlicensed</span>
+                </button>
                 <button class="menu-item" data-tab="logs">
                     <i class="fa-solid fa-terminal"></i>
                     <span>System Logs</span>
@@ -210,23 +215,34 @@
                             <div class="card-body form-grid">
                                 <div class="form-group">
                                     <label for="risk_sizing_mode">Sizing Mode</label>
-                                    <select id="risk_sizing_mode" class="form-control">
-                                        <option value="fixed_lot">Fixed Lot Size</option>
-                                        <option value="percentage_risk">Percentage Risk</option>
-                                    </select>
+                                    <div class="select-wrapper">
+                                        <select id="risk_sizing_mode" class="form-control">
+                                            <option value="fixed_lot">Fixed Lot Size</option>
+                                            <option value="percentage_risk">Percentage Risk</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="form-group" id="fixed-lot-group">
                                     <label for="fixed_lot_size">Fixed Lot Size</label>
-                                    <input type="number" id="fixed_lot_size" step="0.01" min="0.01" placeholder="0.01">
+                                    <div class="input-group">
+                                        <input type="number" id="fixed_lot_size" step="0.01" min="0.01" placeholder="0.01">
+                                        <span class="input-group-suffix">lots</span>
+                                    </div>
                                 </div>
                                 <div class="form-group" id="risk-percentage-group">
-                                    <label for="risk_percentage">Risk Percentage (%)</label>
-                                    <input type="number" id="risk_percentage" step="0.1" min="0.1" placeholder="1.0">
+                                    <label for="risk_percentage">Risk Percentage</label>
+                                    <div class="input-group">
+                                        <input type="number" id="risk_percentage" step="0.1" min="0.1" placeholder="1.0">
+                                        <span class="input-group-suffix">%</span>
+                                    </div>
                                     <span class="field-desc">Percentage of account balance to risk per trade.</span>
                                 </div>
                                 <div class="form-group">
                                     <label for="max_allowed_lot_size">Max Allowed Lot Size (Safety Cap)</label>
-                                    <input type="number" id="max_allowed_lot_size" step="0.01" min="0.01" placeholder="1.0">
+                                    <div class="input-group">
+                                        <input type="number" id="max_allowed_lot_size" step="0.01" min="0.01" placeholder="1.0">
+                                        <span class="input-group-suffix">lots</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -239,10 +255,12 @@
                             <div class="card-body form-grid">
                                 <div class="form-group">
                                     <label for="tp_execution_mode">Execution Mode</label>
-                                    <select id="tp_execution_mode" class="form-control">
-                                        <option value="multiple_tickets">Multiple Separate Tickets</option>
-                                        <option value="single_ticket_partial">Single Ticket with Partial Closes</option>
-                                    </select>
+                                    <div class="select-wrapper">
+                                        <select id="tp_execution_mode" class="form-control">
+                                            <option value="multiple_tickets">Multiple Separate Tickets</option>
+                                            <option value="single_ticket_partial">Single Ticket with Partial Closes</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="form-group row-align margin-top">
                                     <label class="switch-label" for="move_sl_to_be_on_tp1">Move SL to Entry on TP1</label>
@@ -252,8 +270,11 @@
                                     </label>
                                 </div>
                                 <div class="form-group">
-                                    <label for="fallback_multi_tp_step">Fallback Multi-TP Step (Pips)</label>
-                                    <input type="number" id="fallback_multi_tp_step" step="1" min="1" placeholder="20">
+                                    <label for="fallback_multi_tp_step">Fallback Multi-TP Step</label>
+                                    <div class="input-group">
+                                        <input type="number" id="fallback_multi_tp_step" step="1" min="1" placeholder="20">
+                                        <span class="input-group-suffix">pips</span>
+                                    </div>
                                     <span class="field-desc">Used to auto-generate TP2 and TP3 if signal only contains 1 TP.</span>
                                 </div>
                                 
@@ -261,16 +282,25 @@
                                 
                                 <div class="form-grid-three full-width">
                                     <div class="form-group">
-                                        <label for="tp1_allocation">TP1 Allocation (%)</label>
-                                        <input type="number" id="tp1_allocation" min="0" max="100" placeholder="50">
+                                        <label for="tp1_allocation">TP1 Allocation</label>
+                                        <div class="input-group">
+                                            <input type="number" id="tp1_allocation" min="0" max="100" placeholder="50">
+                                            <span class="input-group-suffix">%</span>
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="tp2_allocation">TP2 Allocation (%)</label>
-                                        <input type="number" id="tp2_allocation" min="0" max="100" placeholder="30">
+                                        <label for="tp2_allocation">TP2 Allocation</label>
+                                        <div class="input-group">
+                                            <input type="number" id="tp2_allocation" min="0" max="100" placeholder="30">
+                                            <span class="input-group-suffix">%</span>
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label for="tp3_allocation">TP3 Allocation (%)</label>
-                                        <input type="number" id="tp3_allocation" min="0" max="100" placeholder="20">
+                                        <label for="tp3_allocation">TP3 Allocation</label>
+                                        <div class="input-group">
+                                            <input type="number" id="tp3_allocation" min="0" max="100" placeholder="20">
+                                            <span class="input-group-suffix">%</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="tp-allocation-warn" class="validation-warn hidden full-width">
@@ -279,20 +309,26 @@
                             </div>
                         </div>
 
-                        <!-- Guard Filters & Circuit Breakers Card -->
+                        <!-- Guard Filters & Slippage Card -->
                         <div class="details-card glass">
                             <div class="card-header">
                                 <h2><i class="fa-solid fa-shield-halved"></i> Guard Filters & Slippage</h2>
                             </div>
                             <div class="card-body form-grid">
                                 <div class="form-group">
-                                    <label for="max_entry_slippage">Max Entry Slippage (Pips)</label>
-                                    <input type="number" id="max_entry_slippage" step="0.1" min="0.1" placeholder="5.0">
+                                    <label for="max_entry_slippage">Max Entry Slippage</label>
+                                    <div class="input-group">
+                                        <input type="number" id="max_entry_slippage" step="0.1" min="0.1" placeholder="5.0">
+                                        <span class="input-group-suffix">pips</span>
+                                    </div>
                                     <span class="field-desc">Reject signal if market price moved further than this.</span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="default_fallback_sl">Default Fallback SL (Pips)</label>
-                                    <input type="number" id="default_fallback_sl" step="1" min="1" placeholder="30">
+                                    <label for="default_fallback_sl">Default Fallback SL</label>
+                                    <div class="input-group">
+                                        <input type="number" id="default_fallback_sl" step="1" min="1" placeholder="30">
+                                        <span class="input-group-suffix">pips</span>
+                                    </div>
                                     <span class="field-desc">Applied if the incoming signal doesn't specify an SL.</span>
                                 </div>
                             </div>
@@ -305,17 +341,26 @@
                             </div>
                             <div class="card-body form-grid">
                                 <div class="form-group">
-                                    <label for="max_daily_drawdown_percent">Max Daily Drawdown (%)</label>
-                                    <input type="number" id="max_daily_drawdown_percent" step="0.1" min="0.1" placeholder="5.0">
+                                    <label for="max_daily_drawdown_percent">Max Daily Drawdown</label>
+                                    <div class="input-group">
+                                        <input type="number" id="max_daily_drawdown_percent" step="0.1" min="0.1" placeholder="5.0">
+                                        <span class="input-group-suffix">%</span>
+                                    </div>
                                     <span class="field-desc">Discard trades if daily equity drawdown exceeds this limit.</span>
                                 </div>
                                 <div class="form-group">
                                     <label for="max_concurrent_open_trades">Max Concurrent Open Trades</label>
-                                    <input type="number" id="max_concurrent_open_trades" min="1" placeholder="5">
+                                    <div class="input-group">
+                                        <input type="number" id="max_concurrent_open_trades" min="1" placeholder="5">
+                                        <span class="input-group-suffix">trades</span>
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="auto_pause_loss_streak_threshold">Auto-Pause Loss Streak</label>
-                                    <input type="number" id="auto_pause_loss_streak_threshold" min="1" placeholder="5">
+                                    <div class="input-group">
+                                        <input type="number" id="auto_pause_loss_streak_threshold" min="1" placeholder="5">
+                                        <span class="input-group-suffix">losses</span>
+                                    </div>
                                     <span class="field-desc">Pause a channel if it reaches this consecutive loss streak.</span>
                                 </div>
                             </div>
@@ -358,6 +403,58 @@
                         <button type="button" id="save-risk-btn" class="btn btn-primary btn-large">
                             <i class="fa-solid fa-floppy-disk"></i> Save Risk Settings
                         </button>
+                    </div>
+                </section>
+
+                <!-- ================= TOOL ACTIVATION / LICENSING TAB ================= -->
+                <section class="tab-pane" id="license-tab">
+                    <div class="risk-layout">
+                        <!-- License Status Card -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-circle-info"></i> License Status</h2>
+                            </div>
+                            <div class="card-body flex-column">
+                                <div class="license-info-grid">
+                                    <div class="info-row">
+                                        <span class="info-label">Status:</span>
+                                        <span class="info-value" id="lic-status-badge">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Licensee:</span>
+                                        <span class="info-value" id="lic-email-val">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Expiration:</span>
+                                        <span class="info-value" id="lic-expiry-val">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Days Remaining:</span>
+                                        <span class="info-value" id="lic-days-val">-</span>
+                                    </div>
+                                </div>
+                                <div class="license-desc-text margin-top">
+                                    <p id="lic-message-desc">Checking license status...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- License Activation Form -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-key"></i> Activate Software License</h2>
+                            </div>
+                            <div class="card-body flex-column">
+                                <p class="helper-text">Enter your cryptographically signed product activation license key below. If you don't have one, please contact your administrator or purchase a subscription.</p>
+                                <textarea id="license-key-input" placeholder="Paste your Base64 license key here..." style="height: 120px; font-family: monospace; margin-bottom: 12px;"></textarea>
+                                <div class="card-footer-actions" style="margin-top: 0;">
+                                    <button id="activate-license-btn" class="btn btn-primary">
+                                        <i class="fa-solid fa-circle-check"></i> Activate License
+                                    </button>
+                                </div>
+                                <div id="license-activation-msg" class="save-status margin-top"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

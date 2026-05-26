@@ -25,6 +25,7 @@ import parser
 import executor
 from listener import TelegramSignalListener
 import risk_manager
+import license_manager
 
 logger = logging.getLogger("web_dashboard")
 
@@ -67,6 +68,9 @@ class SignalTestRequest(BaseModel):
 class ControlRequest(BaseModel):
     action: str  # "start", "stop", "restart"
 
+class LicenseActivateRequest(BaseModel):
+    key: str
+
 
 class BotManager:
     """Manages the background Telegram listener task and MT5 connection lifecycle."""
@@ -106,6 +110,12 @@ class BotManager:
         if self.is_running:
             logger.warning("Bot is already running.")
             return True
+
+        # Check license activation first
+        status = license_manager.get_license_status()
+        if not status["active"]:
+            logger.error(f"Cannot start bot execution engine: {status['message']}")
+            return False
 
         logger.info("Starting bot execution engine...")
         
@@ -436,6 +446,26 @@ async def reset_risk_channel(magic_number: int):
         return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to reset channel: {str(e)}")
+
+
+@app.get("/api/license/status")
+async def get_license_status():
+    """Retrieve current license details and validity."""
+    try:
+        return license_manager.get_license_status()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve license details: {str(e)}")
+
+
+@app.post("/api/license/activate")
+async def activate_license(req: LicenseActivateRequest):
+    """Attempt to activate the bot with a license key."""
+    try:
+        success = license_manager.save_license_key(req.key)
+        status = license_manager.get_license_status()
+        return {"success": success, "status": status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to activate license: {str(e)}")
 
 
 # Mount static assets directory

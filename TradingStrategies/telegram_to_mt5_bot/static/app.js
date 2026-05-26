@@ -74,6 +74,10 @@ document.addEventListener("DOMContentLoaded", () => {
             title: "Risk Management & Circuit Breakers",
             subtitle: "Configure lot sizing rules, take profit allocations, slippage guards, and track source channel streaks"
         },
+        license: {
+            title: "Tool Activation",
+            subtitle: "Manage software activation key and license terms"
+        },
         logs: {
             title: "System Logs",
             subtitle: "Monitor active background events and runtime execution"
@@ -126,10 +130,18 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             stopChannelStatsPolling();
         }
+
+        if (tabId === "license") {
+            fetchLicenseStatus();
+        }
     }
 
     menuItems.forEach(item => {
         item.addEventListener("click", () => {
+            // Prevent navigating away if license is locked, unless clicking license tab
+            if (document.body.classList.contains("license-locked") && item.getAttribute("data-tab") !== "license") {
+                return;
+            }
             switchTab(item.getAttribute("data-tab"));
         });
     });
@@ -532,12 +544,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function toggleSizingFields() {
         if (!riskSizingMode) return;
-        if (riskSizingMode.value === "fixed_lot") {
-            fixedLotGroup.style.display = "flex";
-            riskPercentageGroup.style.display = "none";
+        const isFixed = riskSizingMode.value === "fixed_lot";
+        const fixedInput = document.getElementById("fixed_lot_size");
+        const riskInput = document.getElementById("risk_percentage");
+
+        if (isFixed) {
+            if (fixedInput) fixedInput.disabled = false;
+            if (fixedLotGroup) fixedLotGroup.classList.remove("disabled");
+            if (riskInput) riskInput.disabled = true;
+            if (riskPercentageGroup) riskPercentageGroup.classList.add("disabled");
         } else {
-            fixedLotGroup.style.display = "none";
-            riskPercentageGroup.style.display = "flex";
+            if (fixedInput) fixedInput.disabled = true;
+            if (fixedLotGroup) fixedLotGroup.classList.add("disabled");
+            if (riskInput) riskInput.disabled = false;
+            if (riskPercentageGroup) riskPercentageGroup.classList.remove("disabled");
         }
     }
 
@@ -682,11 +702,19 @@ document.addEventListener("DOMContentLoaded", () => {
                       <i class="fa-solid fa-eraser"></i> Clear Streak
                   </button>`;
                   
+            const winStreakContent = ch.consecutive_wins > 0
+                ? `<span class="streak-badge wins"><i class="fa-solid fa-fire"></i> ${ch.consecutive_wins} Wins</span>`
+                : `<span style="color: var(--text-dark);">-</span>`;
+
+            const lossStreakContent = ch.consecutive_losses > 0
+                ? `<span class="streak-badge losses"><i class="fa-solid fa-triangle-exclamation"></i> ${ch.consecutive_losses} Losses</span>`
+                : `<span style="color: var(--text-dark);">-</span>`;
+
             tr.innerHTML = `
                 <td><strong>${ch.channel_name}</strong></td>
                 <td><code>${ch.magic_number}</code></td>
-                <td style="color: var(--color-success); font-weight: bold">${ch.consecutive_wins}</td>
-                <td style="color: var(--color-danger); font-weight: bold">${ch.consecutive_losses}</td>
+                <td>${winStreakContent}</td>
+                <td>${lossStreakContent}</td>
                 <td>${statusBadge}</td>
                 <td>${actionButton}</td>
             `;
@@ -730,6 +758,135 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // =====================================================================
+    // LICENSE MANAGEMENT HANDLERS & HELPERS
+    // =====================================================================
+    const licenseBadgeStatus = document.getElementById("license-badge-status");
+    const licStatusBadge = document.getElementById("lic-status-badge");
+    const licEmailVal = document.getElementById("lic-email-val");
+    const licExpiryVal = document.getElementById("lic-expiry-val");
+    const licDaysVal = document.getElementById("lic-days-val");
+    const licMessageDesc = document.getElementById("lic-message-desc");
+    const licenseKeyInput = document.getElementById("license-key-input");
+    const activateLicenseBtn = document.getElementById("activate-license-btn");
+    const licenseActivationMsg = document.getElementById("license-activation-msg");
+
+    async function fetchLicenseStatus() {
+        try {
+            const res = await fetch("/api/license/status");
+            const data = await res.json();
+
+            // Update UI elements
+            if (data.active) {
+                document.body.classList.remove("license-locked");
+                
+                if (licenseBadgeStatus) {
+                    licenseBadgeStatus.className = "badge badge-active";
+                    licenseBadgeStatus.innerText = "Active";
+                    licenseBadgeStatus.style.boxShadow = "0 0 5px var(--color-success)";
+                }
+
+                if (licStatusBadge) {
+                    licStatusBadge.innerHTML = '<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Activated</span>';
+                }
+                
+                if (licEmailVal) licEmailVal.innerText = data.licensee;
+                if (licExpiryVal) licExpiryVal.innerText = data.expiry;
+                if (licDaysVal) licDaysVal.innerText = `${data.days_remaining} days`;
+                if (licMessageDesc) {
+                    licMessageDesc.innerText = data.message;
+                    licMessageDesc.style.color = "var(--color-success)";
+                }
+            } else {
+                document.body.classList.add("license-locked");
+
+                if (licenseBadgeStatus) {
+                    licenseBadgeStatus.className = "badge badge-paused";
+                    licenseBadgeStatus.innerText = "Locked";
+                    licenseBadgeStatus.style.boxShadow = "0 0 5px var(--color-danger)";
+                }
+
+                if (licStatusBadge) {
+                    licStatusBadge.innerHTML = '<span class="badge badge-paused"><i class="fa-solid fa-triangle-exclamation"></i> Deactivated</span>';
+                }
+                
+                if (licEmailVal) licEmailVal.innerText = "None";
+                if (licExpiryVal) licExpiryVal.innerText = "None";
+                if (licDaysVal) licDaysVal.innerText = "0 days";
+                if (licMessageDesc) {
+                    licMessageDesc.innerText = data.message || "Activation required. No license key found.";
+                    licMessageDesc.style.color = "var(--color-danger)";
+                }
+
+                // Force tab to license if locked
+                if (state.activeTab !== "license") {
+                    switchTab("license");
+                }
+            }
+            return data.active;
+        } catch (err) {
+            console.error("Error fetching license status:", err);
+            return false;
+        }
+    }
+
+    if (activateLicenseBtn) {
+        activateLicenseBtn.addEventListener("click", async () => {
+            const key = licenseKeyInput.value.trim();
+            if (!key) {
+                licenseActivationMsg.className = "save-status error";
+                licenseActivationMsg.innerText = "Please paste a license key first.";
+                return;
+            }
+
+            activateLicenseBtn.disabled = true;
+            activateLicenseBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Activating...';
+            licenseActivationMsg.className = "save-status";
+            licenseActivationMsg.innerText = "Verifying key...";
+
+            try {
+                const res = await fetch("/api/license/activate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    licenseActivationMsg.className = "save-status success";
+                    licenseActivationMsg.innerText = "Activation successful! Bot is unlocked.";
+                    licenseKeyInput.value = "";
+                    
+                    // Refresh status
+                    const isActive = await fetchLicenseStatus();
+                    if (isActive) {
+                        // If successfully activated, trigger bot manager start
+                        await updateStatus();
+                        // Automatically switch to dashboard tab
+                        setTimeout(() => {
+                            switchTab("dashboard");
+                        }, 1500);
+                    }
+                } else {
+                    licenseActivationMsg.className = "save-status error";
+                    licenseActivationMsg.innerText = `Activation failed: ${data.status?.message || "Invalid license key."}`;
+                }
+            } catch (err) {
+                licenseActivationMsg.className = "save-status error";
+                licenseActivationMsg.innerText = "Network error. Failed to send activation request.";
+            } finally {
+                activateLicenseBtn.disabled = false;
+                activateLicenseBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Activate License';
+            }
+        });
+    }
+
     // Initialize application
-    startStatusPolling();
+    async function initApp() {
+        const isLicensed = await fetchLicenseStatus();
+        await updateStatus();
+        startStatusPolling();
+    }
+
+    initApp();
 });

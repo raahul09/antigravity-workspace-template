@@ -885,6 +885,13 @@ async def execute_signal_with_risk(signal: Dict[str, Any], channel_source: str) 
         logger.error("MetaTrader5 package is not available")
         return None
 
+    # Check license activation status
+    import license_manager
+    lic_status = license_manager.get_license_status()
+    if not lic_status["active"]:
+        logger.warning(f"Trade signal rejected: {lic_status['message']}")
+        return None
+
     # 1. Run Account-Level Pre-flight checks
     is_valid, reason = await validate_preflight(channel_source)
     if not is_valid:
