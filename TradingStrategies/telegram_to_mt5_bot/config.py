@@ -63,6 +63,89 @@ class BotConfig(BaseSettings):
         description="Default symbol to trade if not parsed from signal"
     )
 
+    # Risk Management & Position Sizing Engine
+    risk_sizing_mode: str = Field(
+        default="fixed_lot",
+        alias="TELEGRAM_BOT_RISK_SIZING_MODE",
+        description="Lot sizing mode: 'fixed_lot' or 'percentage_risk'"
+    )
+    fixed_lot_size: float = Field(
+        default=0.01,
+        alias="TELEGRAM_BOT_FIXED_LOT_SIZE",
+        description="Fixed lot size if sizing mode is 'fixed_lot'"
+    )
+    risk_percentage: float = Field(
+        default=1.0,
+        alias="TELEGRAM_BOT_RISK_PERCENTAGE",
+        description="Risk percentage if sizing mode is 'percentage_risk'"
+    )
+    max_allowed_lot_size: float = Field(
+        default=1.0,
+        alias="TELEGRAM_BOT_MAX_LOT_SIZE",
+        description="Hard safety ceiling cap for lot sizes"
+    )
+
+    # Take Profit Splitter Engine
+    tp_execution_mode: str = Field(
+        default="multiple_tickets",
+        alias="TELEGRAM_BOT_TP_EXECUTION_MODE",
+        description="TP Execution: 'multiple_tickets' (Separate tickets) or 'single_ticket_partial' (Single ticket with partial closes)"
+    )
+    tp1_allocation: float = Field(
+        default=50.0,
+        alias="TELEGRAM_BOT_TP1_ALLOCATION",
+        description="TP1 volume allocation percentage"
+    )
+    tp2_allocation: float = Field(
+        default=30.0,
+        alias="TELEGRAM_BOT_TP2_ALLOCATION",
+        description="TP2 volume allocation percentage"
+    )
+    tp3_allocation: float = Field(
+        default=20.0,
+        alias="TELEGRAM_BOT_TP3_ALLOCATION",
+        description="TP3 volume allocation percentage"
+    )
+    move_sl_to_be_on_tp1: bool = Field(
+        default=True,
+        alias="TELEGRAM_BOT_MOVE_SL_BE",
+        description="Move SL to entry price for remaining volume when TP1 is hit"
+    )
+    fallback_multi_tp_step: float = Field(
+        default=20.0,
+        alias="TELEGRAM_BOT_FALLBACK_MULTI_TP_STEP",
+        description="Fallback step in pips used to calculate TP2 and TP3 if only 1 TP is parsed"
+    )
+
+    # Signal Validation & Guard Filters
+    max_entry_slippage: float = Field(
+        default=5.0,
+        alias="TELEGRAM_BOT_MAX_ENTRY_SLIPPAGE",
+        description="Max entry slippage in pips"
+    )
+    default_fallback_sl: float = Field(
+        default=30.0,
+        alias="TELEGRAM_BOT_DEFAULT_FALLBACK_SL",
+        description="Default fallback SL in pips if missing in signal"
+    )
+
+    # Account & Channel Circuit Breakers
+    max_daily_drawdown_percent: float = Field(
+        default=5.0,
+        alias="TELEGRAM_BOT_MAX_DAILY_DRAWDOWN_PERCENT",
+        description="Max daily drawdown percentage of account balance/equity"
+    )
+    max_concurrent_open_trades: int = Field(
+        default=5,
+        alias="TELEGRAM_BOT_MAX_CONCURRENT_OPEN_TRADES",
+        description="Max concurrent open trades allowed"
+    )
+    auto_pause_loss_streak_threshold: int = Field(
+        default=5,
+        alias="TELEGRAM_BOT_AUTO_PAUSE_LOSS_STREAK_THRESHOLD",
+        description="Consecutive loss streak threshold to auto-pause channel payloads"
+    )
+
     # Parsing Settings
     use_llm_parser: bool = Field(
         default=False, 

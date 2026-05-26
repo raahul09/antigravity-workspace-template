@@ -107,9 +107,15 @@ def test_invalid_messages_ignored():
     """Verify that messages without trading signals are ignored (returns None)."""
     # Random conversational text
     assert parse_signal("Hello everyone, how is trading going today?") is None
-    
-    # Message with action and symbol, but missing mandatory Stop Loss
-    assert parse_signal("BUY XAUUSD at 2400.00, looking for targets!") is None
+
+
+def test_missing_sl_allowed():
+    """Verify that signals missing a Stop Loss are parsed with sl=None."""
+    res = parse_signal("BUY XAUUSD at 2400.00, looking for targets!")
+    assert res is not None
+    assert res["action"] == "BUY"
+    assert res["symbol"] == "XAUUSD"
+    assert res["sl"] is None
 
 
 def test_sl_tp_combinations():

@@ -70,6 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
             title: "Settings Configuration",
             subtitle: "Edit credentials, risk levels, parsing triggers, and source channels"
         },
+        risk: {
+            title: "Risk Management & Circuit Breakers",
+            subtitle: "Configure lot sizing rules, take profit allocations, slippage guards, and track source channel streaks"
+        },
         logs: {
             title: "System Logs",
             subtitle: "Monitor active background events and runtime execution"
@@ -114,6 +118,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (tabId === "config") {
             fetchConfig();
+        }
+
+        if (tabId === "risk") {
+            fetchConfig(); // config endpoint returns all settings including risk settings
+            startChannelStatsPolling();
+        } else {
+            stopChannelStatsPolling();
         }
     }
 
@@ -263,6 +274,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         element.value = config[key];
                     }
                 }
+            }
+
+            // Trigger dynamic UI updates for Risk Management fields
+            if (document.getElementById("risk_sizing_mode")) {
+                toggleSizingFields();
+                validateTPAliocations();
             }
 
             // Render source channels summary in Dashboard
@@ -504,6 +521,213 @@ document.addEventListener("DOMContentLoaded", () => {
     function startStatusPolling() {
         updateStatus();
         state.statusIntervalId = setInterval(updateStatus, 3000);
+    }
+
+    // =====================================================================
+    // RISK MANAGEMENT HANDLERS & HELPERS
+    // =====================================================================
+    const riskSizingMode = document.getElementById("risk_sizing_mode");
+    const fixedLotGroup = document.getElementById("fixed-lot-group");
+    const riskPercentageGroup = document.getElementById("risk-percentage-group");
+
+    function toggleSizingFields() {
+        if (!riskSizingMode) return;
+        if (riskSizingMode.value === "fixed_lot") {
+            fixedLotGroup.style.display = "flex";
+            riskPercentageGroup.style.display = "none";
+        } else {
+            fixedLotGroup.style.display = "none";
+            riskPercentageGroup.style.display = "flex";
+        }
+    }
+
+    if (riskSizingMode) {
+        riskSizingMode.addEventListener("change", toggleSizingFields);
+    }
+
+    const tp1Allocation = document.getElementById("tp1_allocation");
+    const tp2Allocation = document.getElementById("tp2_allocation");
+    const tp3Allocation = document.getElementById("tp3_allocation");
+    const tpAllocationWarn = document.getElementById("tp-allocation-warn");
+    const tpAllocationSumSpan = document.getElementById("tp-allocation-sum");
+    const saveRiskBtn = document.getElementById("save-risk-btn");
+
+    function validateTPAliocations() {
+        if (!tp1Allocation || !tp2Allocation || !tp3Allocation) return;
+        const v1 = parseFloat(tp1Allocation.value) || 0;
+        const v2 = parseFloat(tp2Allocation.value) || 0;
+        const v3 = parseFloat(tp3Allocation.value) || 0;
+        const sum = v1 + v2 + v3;
+        
+        if (tpAllocationSumSpan) {
+            tpAllocationSumSpan.innerText = sum;
+        }
+        
+        if (sum !== 100) {
+            if (tpAllocationWarn) tpAllocationWarn.classList.remove("hidden");
+            if (saveRiskBtn) saveRiskBtn.disabled = true;
+        } else {
+            if (tpAllocationWarn) tpAllocationWarn.classList.add("hidden");
+            if (saveRiskBtn) saveRiskBtn.disabled = false;
+        }
+    }
+
+    if (tp1Allocation && tp2Allocation && tp3Allocation) {
+        [tp1Allocation, tp2Allocation, tp3Allocation].forEach(input => {
+            input.addEventListener("input", validateTPAliocations);
+        });
+    }
+
+    const riskSaveStatusMsg = document.getElementById("risk-save-status-msg");
+    if (saveRiskBtn) {
+        saveRiskBtn.addEventListener("click", async () => {
+            riskSaveStatusMsg.className = "save-status";
+            riskSaveStatusMsg.innerText = "Saving risk settings...";
+            
+            try {
+                // Fetch full config to preserve settings we aren't editing here
+                const cfgRes = await fetch("/api/config");
+                const currentConfig = await cfgRes.json();
+                
+                // Collect risk settings from the UI
+                const updates = {
+                    risk_sizing_mode: riskSizingMode.value,
+                    fixed_lot_size: parseFloat(document.getElementById("fixed_lot_size").value) || 0.01,
+                    risk_percentage: parseFloat(document.getElementById("risk_percentage").value) || 1.0,
+                    max_allowed_lot_size: parseFloat(document.getElementById("max_allowed_lot_size").value) || 1.0,
+                    tp_execution_mode: document.getElementById("tp_execution_mode").value,
+                    tp1_allocation: parseFloat(tp1Allocation.value) || 50.0,
+                    tp2_allocation: parseFloat(tp2Allocation.value) || 30.0,
+                    tp3_allocation: parseFloat(tp3Allocation.value) || 20.0,
+                    move_sl_to_be_on_tp1: document.getElementById("move_sl_to_be_on_tp1").checked,
+                    fallback_multi_tp_step: parseFloat(document.getElementById("fallback_multi_tp_step").value) || 20.0,
+                    max_entry_slippage: parseFloat(document.getElementById("max_entry_slippage").value) || 5.0,
+                    default_fallback_sl: parseFloat(document.getElementById("default_fallback_sl").value) || 30.0,
+                    max_daily_drawdown_percent: parseFloat(document.getElementById("max_daily_drawdown_percent").value) || 5.0,
+                    max_concurrent_open_trades: parseInt(document.getElementById("max_concurrent_open_trades").value) || 5,
+                    auto_pause_loss_streak_threshold: parseInt(document.getElementById("auto_pause_loss_streak_threshold").value) || 5
+                };
+                
+                // Merge updates into payload
+                const payload = { ...currentConfig, ...updates };
+                
+                if (payload.mt5_password === "******") {
+                    delete payload.mt5_password;
+                }
+                
+                const res = await fetch("/api/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const resData = await res.json();
+                
+                if (resData.success) {
+                    riskSaveStatusMsg.className = "save-status success";
+                    riskSaveStatusMsg.innerText = resData.restarted ? "Risk settings saved! Bot restarted successfully." : "Risk settings saved!";
+                    setTimeout(() => { riskSaveStatusMsg.innerText = ""; }, 4000);
+                } else {
+                    riskSaveStatusMsg.className = "save-status error";
+                    riskSaveStatusMsg.innerText = `Save failed: ${resData.detail || "Server error"}`;
+                }
+            } catch (err) {
+                riskSaveStatusMsg.className = "save-status error";
+                riskSaveStatusMsg.innerText = "Network error. Failed to save risk settings.";
+            }
+        });
+    }
+
+    const riskChannelsTableBody = document.getElementById("risk-channels-table-body");
+    const refreshChannelStatsBtn = document.getElementById("refresh-channel-stats-btn");
+    let channelStatsIntervalId = null;
+
+    async function fetchChannelStats() {
+        if (!riskChannelsTableBody) return;
+        try {
+            const res = await fetch("/api/risk/channels");
+            const data = await res.json();
+            
+            if (data.success) {
+                renderChannelStats(data.channels);
+            }
+        } catch (err) {
+            console.error("Error fetching channel stats:", err);
+        }
+    }
+
+    function renderChannelStats(channels) {
+        if (!riskChannelsTableBody) return;
+        if (!channels || channels.length === 0) {
+            riskChannelsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-table-text">No channels registered yet. Start the bot and receive messages to view statistics.</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        riskChannelsTableBody.innerHTML = "";
+        channels.forEach(ch => {
+            const tr = document.createElement("tr");
+            
+            const statusBadge = ch.paused 
+                ? '<span class="badge badge-paused"><i class="fa-solid fa-circle-pause"></i> Paused</span>'
+                : '<span class="badge badge-active"><i class="fa-solid fa-circle-check"></i> Active</span>';
+                
+            const actionButton = ch.paused
+                ? `<button class="btn btn-secondary btn-small reset-streak-btn" data-magic="${ch.magic_number}">
+                      <i class="fa-solid fa-arrows-rotate"></i> Reset Streak & Unpause
+                  </button>`
+                : `<button class="btn btn-secondary btn-small reset-streak-btn" data-magic="${ch.magic_number}">
+                      <i class="fa-solid fa-eraser"></i> Clear Streak
+                  </button>`;
+                  
+            tr.innerHTML = `
+                <td><strong>${ch.channel_name}</strong></td>
+                <td><code>${ch.magic_number}</code></td>
+                <td style="color: var(--color-success); font-weight: bold">${ch.consecutive_wins}</td>
+                <td style="color: var(--color-danger); font-weight: bold">${ch.consecutive_losses}</td>
+                <td>${statusBadge}</td>
+                <td>${actionButton}</td>
+            `;
+            
+            const btn = tr.querySelector(".reset-streak-btn");
+            btn.addEventListener("click", async () => {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resetting...';
+                try {
+                    const res = await fetch(`/api/risk/channels/${ch.magic_number}/reset`, { method: "POST" });
+                    const resData = await res.json();
+                    if (resData.success) {
+                        await fetchChannelStats();
+                    }
+                } catch (e) {
+                    console.error("Failed to reset channel stats:", e);
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+            
+            riskChannelsTableBody.appendChild(tr);
+        });
+    }
+
+    if (refreshChannelStatsBtn) {
+        refreshChannelStatsBtn.addEventListener("click", fetchChannelStats);
+    }
+
+    function startChannelStatsPolling() {
+        if (!channelStatsIntervalId) {
+            fetchChannelStats();
+            channelStatsIntervalId = setInterval(fetchChannelStats, 5000);
+        }
+    }
+
+    function stopChannelStatsPolling() {
+        if (channelStatsIntervalId) {
+            clearInterval(channelStatsIntervalId);
+            channelStatsIntervalId = null;
+        }
     }
 
     // Initialize application

@@ -86,9 +86,11 @@ class TelegramSignalListener:
             
             logger.info(f"New message from {sender_name} in '{chat_title}': {event.raw_text.strip()}")
 
+            chat_id = str(event.chat_id)
             if self.on_signal_callback:
                 try:
-                    self.on_signal_callback(event.raw_text)
+                    # Pass the chat ID (channel source) as the second argument
+                    self.on_signal_callback(event.raw_text, chat_id)
                 except Exception as e:
                     logger.error(f"Error executing signal callback: {e}")
 

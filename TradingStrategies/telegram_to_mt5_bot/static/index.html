@@ -30,6 +30,10 @@
                     <i class="fa-solid fa-vial"></i>
                     <span>Signal Tester</span>
                 </button>
+                <button class="menu-item" data-tab="risk">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Risk Management</span>
+                </button>
                 <button class="menu-item" data-tab="config">
                     <i class="fa-solid fa-sliders"></i>
                     <span>Settings</span>
@@ -192,6 +196,168 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <!-- ================= RISK MANAGEMENT TAB ================= -->
+                <section class="tab-pane" id="risk-tab">
+                    <div class="risk-layout">
+                        <!-- Position Sizing Engine Card -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-calculator"></i> Position Sizing Engine</h2>
+                            </div>
+                            <div class="card-body form-grid">
+                                <div class="form-group">
+                                    <label for="risk_sizing_mode">Sizing Mode</label>
+                                    <select id="risk_sizing_mode" class="form-control">
+                                        <option value="fixed_lot">Fixed Lot Size</option>
+                                        <option value="percentage_risk">Percentage Risk</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="fixed-lot-group">
+                                    <label for="fixed_lot_size">Fixed Lot Size</label>
+                                    <input type="number" id="fixed_lot_size" step="0.01" min="0.01" placeholder="0.01">
+                                </div>
+                                <div class="form-group" id="risk-percentage-group">
+                                    <label for="risk_percentage">Risk Percentage (%)</label>
+                                    <input type="number" id="risk_percentage" step="0.1" min="0.1" placeholder="1.0">
+                                    <span class="field-desc">Percentage of account balance to risk per trade.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="max_allowed_lot_size">Max Allowed Lot Size (Safety Cap)</label>
+                                    <input type="number" id="max_allowed_lot_size" step="0.01" min="0.01" placeholder="1.0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Level-Based TP Splitter Engine Card -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-arrows-split-up-and-left"></i> TP Splitter Engine</h2>
+                            </div>
+                            <div class="card-body form-grid">
+                                <div class="form-group">
+                                    <label for="tp_execution_mode">Execution Mode</label>
+                                    <select id="tp_execution_mode" class="form-control">
+                                        <option value="multiple_tickets">Multiple Separate Tickets</option>
+                                        <option value="single_ticket_partial">Single Ticket with Partial Closes</option>
+                                    </select>
+                                </div>
+                                <div class="form-group row-align margin-top">
+                                    <label class="switch-label" for="move_sl_to_be_on_tp1">Move SL to Entry on TP1</label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="move_sl_to_be_on_tp1">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="fallback_multi_tp_step">Fallback Multi-TP Step (Pips)</label>
+                                    <input type="number" id="fallback_multi_tp_step" step="1" min="1" placeholder="20">
+                                    <span class="field-desc">Used to auto-generate TP2 and TP3 if signal only contains 1 TP.</span>
+                                </div>
+                                
+                                <div class="divider full-width">Volume Allocation Grid</div>
+                                
+                                <div class="form-grid-three full-width">
+                                    <div class="form-group">
+                                        <label for="tp1_allocation">TP1 Allocation (%)</label>
+                                        <input type="number" id="tp1_allocation" min="0" max="100" placeholder="50">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tp2_allocation">TP2 Allocation (%)</label>
+                                        <input type="number" id="tp2_allocation" min="0" max="100" placeholder="30">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="tp3_allocation">TP3 Allocation (%)</label>
+                                        <input type="number" id="tp3_allocation" min="0" max="100" placeholder="20">
+                                    </div>
+                                </div>
+                                <div id="tp-allocation-warn" class="validation-warn hidden full-width">
+                                    <i class="fa-solid fa-circle-exclamation"></i> Allocations must sum to 100%. Current sum: <span id="tp-allocation-sum">100</span>%
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guard Filters & Circuit Breakers Card -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-shield-halved"></i> Guard Filters & Slippage</h2>
+                            </div>
+                            <div class="card-body form-grid">
+                                <div class="form-group">
+                                    <label for="max_entry_slippage">Max Entry Slippage (Pips)</label>
+                                    <input type="number" id="max_entry_slippage" step="0.1" min="0.1" placeholder="5.0">
+                                    <span class="field-desc">Reject signal if market price moved further than this.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="default_fallback_sl">Default Fallback SL (Pips)</label>
+                                    <input type="number" id="default_fallback_sl" step="1" min="1" placeholder="30">
+                                    <span class="field-desc">Applied if the incoming signal doesn't specify an SL.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Circuit Breakers Card -->
+                        <div class="details-card glass">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-triangle-exclamation"></i> Circuit Breakers</h2>
+                            </div>
+                            <div class="card-body form-grid">
+                                <div class="form-group">
+                                    <label for="max_daily_drawdown_percent">Max Daily Drawdown (%)</label>
+                                    <input type="number" id="max_daily_drawdown_percent" step="0.1" min="0.1" placeholder="5.0">
+                                    <span class="field-desc">Discard trades if daily equity drawdown exceeds this limit.</span>
+                                </div>
+                                <div class="form-group">
+                                    <label for="max_concurrent_open_trades">Max Concurrent Open Trades</label>
+                                    <input type="number" id="max_concurrent_open_trades" min="1" placeholder="5">
+                                </div>
+                                <div class="form-group">
+                                    <label for="auto_pause_loss_streak_threshold">Auto-Pause Loss Streak</label>
+                                    <input type="number" id="auto_pause_loss_streak_threshold" min="1" placeholder="5">
+                                    <span class="field-desc">Pause a channel if it reaches this consecutive loss streak.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monitored Channels Panel Card -->
+                        <div class="details-card glass full-width">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-tower-broadcast"></i> Channel Statistics & Circuit Breaker Control</h2>
+                                <button type="button" id="refresh-channel-stats-btn" class="btn btn-secondary btn-small">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Refresh Channels
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="risk-channels-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Channel Source ID</th>
+                                                <th>Assigned Magic Number</th>
+                                                <th>Consecutive Wins</th>
+                                                <th>Consecutive Losses</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="risk-channels-table-body">
+                                            <tr>
+                                                <td colspan="6" class="empty-table-text">Loading channel metrics...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-actions full-width margin-top">
+                        <div id="risk-save-status-msg" class="save-status"></div>
+                        <button type="button" id="save-risk-btn" class="btn btn-primary btn-large">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Risk Settings
+                        </button>
                     </div>
                 </section>
 

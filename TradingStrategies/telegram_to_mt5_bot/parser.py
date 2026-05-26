@@ -106,15 +106,12 @@ def parse_signal_regex(text: str) -> Optional[Dict[str, Any]]:
     tp_pat_str = build_keyword_regex(config.tp_keywords, is_tp=True)
     entry_pat_str = build_keyword_regex(config.entry_keywords)
 
-    # Find Stop Loss (SL) - Required
+    # Find Stop Loss (SL) - Optional (falls back to default SL in middleware)
     sl_match = re.search(
         rf"\b(?:{sl_pat_str})(?!\w)\s*(?:\)|\]|\"|')?\s*(?::|-|=)?\s*(\d{{1,3}}(?:,\d{{3}})+(?:\.\d+)?|\d+(?:\.\d+)?)", 
         text_upper
     )
-    if not sl_match:
-        logger.warning("Failed to parse required Stop Loss (SL) via regex")
-        return None
-    sl = float(sl_match.group(1).replace(",", ""))
+    sl = float(sl_match.group(1).replace(",", "")) if sl_match else None
 
     # Find Take Profit (TP) - Optional
     tp_match = re.search(

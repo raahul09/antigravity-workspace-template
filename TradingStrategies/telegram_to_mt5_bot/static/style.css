@@ -883,3 +883,84 @@ input:checked + .slider:before {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(var(--color-primary-rgb), 0.3);
 }
+
+/* Risk Management Tab Layout & Components */
+.risk-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+}
+
+.validation-warn {
+    background-color: rgba(255, 23, 68, 0.08);
+    border: 1px solid rgba(255, 23, 68, 0.2);
+    color: var(--color-danger);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    background-color: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.risk-channels-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+}
+
+.risk-channels-table th, .risk-channels-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.risk-channels-table th {
+    background-color: rgba(255, 255, 255, 0.02);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.risk-channels-table tr:last-child td {
+    border-bottom: none;
+}
+
+.empty-table-text {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 24px 0;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.badge-active {
+    background-color: rgba(0, 230, 118, 0.15);
+    color: var(--color-success);
+    border: 1px solid rgba(0, 230, 118, 0.2);
+}
+
+.badge-paused {
+    background-color: rgba(255, 23, 68, 0.15);
+    color: var(--color-danger);
+    border: 1px solid rgba(255, 23, 68, 0.2);
+}
+
+.margin-top {
+    margin-top: 16px;
+}
+

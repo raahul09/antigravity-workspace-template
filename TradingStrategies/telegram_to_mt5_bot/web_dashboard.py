@@ -24,6 +24,7 @@ from config import config, BotConfig
 import parser
 import executor
 from listener import TelegramSignalListener
+import risk_manager
 
 logger = logging.getLogger("web_dashboard")
 
@@ -42,6 +43,23 @@ class ConfigUpdateRequest(BaseModel):
     sl_keywords: str
     tp_keywords: str
     entry_keywords: str
+    
+    # New Risk management settings
+    risk_sizing_mode: str = "fixed_lot"
+    fixed_lot_size: float = 0.01
+    risk_percentage: float = 1.0
+    max_allowed_lot_size: float = 1.0
+    tp_execution_mode: str = "multiple_tickets"
+    tp1_allocation: float = 50.0
+    tp2_allocation: float = 30.0
+    tp3_allocation: float = 20.0
+    move_sl_to_be_on_tp1: bool = True
+    fallback_multi_tp_step: float = 20.0
+    max_entry_slippage: float = 5.0
+    default_fallback_sl: float = 30.0
+    max_daily_drawdown_percent: float = 5.0
+    max_concurrent_open_trades: int = 5
+    auto_pause_loss_streak_threshold: int = 5
 
 class SignalTestRequest(BaseModel):
     text: str
@@ -56,23 +74,30 @@ class BotManager:
     def __init__(self):
         self.listener: TelegramSignalListener | None = None
         self.bot_task: asyncio.Task | None = None
+        self.risk_monitor_task: asyncio.Task | None = None
+        self.deals_sync_task: asyncio.Task | None = None
         self.is_running: bool = False
 
-    def handle_incoming_signal(self, raw_text: str) -> None:
-        """Callback for incoming Telegram signals, routing to executor."""
+    def handle_incoming_signal(self, raw_text: str, channel_source: str = "default") -> None:
+        """Callback for incoming Telegram signals, routing to risk manager and executor."""
         logger.info("Evaluating message for potential trading signal...")
         signal_data = parser.parse_signal(raw_text)
         if not signal_data:
             logger.info("Message did not match signal criteria. Skipping execution.")
             return
 
-        logger.info(f"Parsed Trade Signal: {signal_data}")
+        logger.info(f"Parsed Trade Signal: {signal_data} from channel source: {channel_source}")
+        
+        # Schedule the async execution since SQLite and order sends are async-friendly
+        asyncio.create_task(self._process_signal_async(signal_data, channel_source))
+
+    async def _process_signal_async(self, signal_data: dict, channel_source: str) -> None:
         try:
-            ticket = executor.execute_signal(signal_data)
-            if ticket:
-                logger.info(f"Successfully processed signal! Order Ticket: {ticket}")
+            tickets = await risk_manager.execute_signal_with_risk(signal_data, channel_source)
+            if tickets:
+                logger.info(f"Successfully processed signal! Order Tickets: {tickets}")
             else:
-                logger.error("Signal parsed but execution failed in MetaTrader 5.")
+                logger.error("Signal parsed but execution failed in MetaTrader 5 or was blocked by risk limits.")
         except Exception as e:
             logger.exception(f"Unexpected error executing parsed signal: {e}")
 
@@ -97,8 +122,13 @@ class BotManager:
             
             # Run start in a background task
             self.bot_task = asyncio.create_task(self.listener.start())
+            
+            # Start Risk Management background tasks
+            self.risk_monitor_task = asyncio.create_task(risk_manager.run_live_risk_monitor())
+            self.deals_sync_task = asyncio.create_task(risk_manager.run_closed_deals_sync())
+            
             self.is_running = True
-            logger.info("Telegram listener task started successfully.")
+            logger.info("Telegram listener and Risk Management tasks started successfully.")
             return True
         except Exception as e:
             logger.exception(f"Failed to start Telegram listener: {e}")
@@ -119,6 +149,23 @@ class BotManager:
             except Exception as e:
                 logger.error(f"Error disconnecting Telegram client: {e}")
             self.listener = None
+
+        # Cancel Risk Management tasks
+        if self.risk_monitor_task:
+            self.risk_monitor_task.cancel()
+            try:
+                await self.risk_monitor_task
+            except asyncio.CancelledError:
+                pass
+            self.risk_monitor_task = None
+
+        if self.deals_sync_task:
+            self.deals_sync_task.cancel()
+            try:
+                await self.deals_sync_task
+            except asyncio.CancelledError:
+                pass
+            self.deals_sync_task = None
 
         # 2. Cancel loop task
         if self.bot_task:
@@ -369,6 +416,26 @@ async def get_logs():
         return {"success": True, "logs": [line.strip() for line in lines[-150:]]}
     except Exception as e:
         return {"success": False, "message": f"Failed to read logs: {str(e)}"}
+
+
+@app.get("/api/risk/channels")
+async def get_risk_channels():
+    """Retrieve all monitored channel statistics and pause states."""
+    try:
+        channels = await risk_manager.get_all_channels()
+        return {"success": True, "channels": channels}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch channels: {str(e)}")
+
+
+@app.post("/api/risk/channels/{magic_number}/reset")
+async def reset_risk_channel(magic_number: int):
+    """Manually reset win/loss streaks and unpause a paused channel."""
+    try:
+        success = await risk_manager.set_channel_paused(magic_number, False)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset channel: {str(e)}")
 
 
 # Mount static assets directory

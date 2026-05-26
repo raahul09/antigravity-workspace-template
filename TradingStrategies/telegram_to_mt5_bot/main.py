@@ -28,11 +28,12 @@ logging.basicConfig(
 logger = logging.getLogger("telegram_mt5_bot")
 
 
-def handle_incoming_signal(raw_text: str) -> None:
+def handle_incoming_signal(raw_text: str, channel_source: str = "default") -> None:
     """Callback function triggered when a new Telegram message is received.
 
     Args:
         raw_text: Raw message content.
+        channel_source: Unique ID of the source Telegram channel.
     """
     logger.info("Evaluating message for potential trading signal...")
     
@@ -42,15 +43,21 @@ def handle_incoming_signal(raw_text: str) -> None:
         logger.info("Message did not match signal criteria. Skipping execution.")
         return
 
-    logger.info(f"Parsed Trade Signal: {signal_data}")
+    logger.info(f"Parsed Trade Signal: {signal_data} from channel source: {channel_source}")
 
-    # 2. Execute on MT5
+    # 2. Execute on MT5 using risk manager
+    import risk_manager
+    asyncio.create_task(_process_signal_async(signal_data, channel_source))
+
+
+async def _process_signal_async(signal_data: dict, channel_source: str) -> None:
     try:
-        ticket = executor.execute_signal(signal_data)
-        if ticket:
-            logger.info(f"Successfully processed signal! Order Ticket: {ticket}")
+        import risk_manager
+        tickets = await risk_manager.execute_signal_with_risk(signal_data, channel_source)
+        if tickets:
+            logger.info(f"Successfully processed signal! Order Tickets: {tickets}")
         else:
-            logger.error("Signal parsed but execution failed in MetaTrader 5.")
+            logger.error("Signal parsed but execution failed in MetaTrader 5 or was blocked by risk limits.")
     except Exception as e:
         logger.exception(f"Unexpected error executing parsed signal: {e}")
 
@@ -70,12 +77,20 @@ async def run_headless() -> None:
     listener = TelegramSignalListener()
     listener.set_signal_callback(handle_incoming_signal)
 
+    # Start Risk Management background tasks
+    import risk_manager
+    risk_monitor = asyncio.create_task(risk_manager.run_live_risk_monitor())
+    deals_sync = asyncio.create_task(risk_manager.run_closed_deals_sync())
+
     # Handle shutdown signals
     loop = asyncio.get_running_loop()
     
     def shutdown_handler():
         logger.info("Shutdown signal received. Cleaning up resources...")
         executor.shutdown_mt5()
+        # Cancel risk tasks
+        risk_monitor.cancel()
+        deals_sync.cancel()
         # Schedule disconnect task
         asyncio.create_task(listener.disconnect())
         sys.exit(0)
