@@ -767,6 +767,51 @@
         </div>
     </footer>
 
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <button class="modal-close" id="modal-close" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-header">
+                <h3><i class="fa-brands fa-bitcoin" style="color: #f7931a;"></i> Pay with Crypto (0% Fees)</h3>
+                <p>Send the exact amount in USDT to receive your lifetime license key instantly.</p>
+            </div>
+            
+            <div class="crypto-tabs">
+                <button class="crypto-tab active" data-network="trc20">USDT (TRC20)</button>
+                <button class="crypto-tab" data-network="bep20">USDT (BEP20)</button>
+            </div>
+            
+            <div class="crypto-address-box">
+                <span class="network-badge" id="active-network">Tron Network (TRC20)</span>
+                <div class="address-copy-container">
+                    <code id="crypto-address">Txxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+                    <button class="copy-btn" id="copy-btn" aria-label="Copy address">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="payment-steps">
+                <div class="pay-step">
+                    <span class="step-num">1</span>
+                    <p>Send <strong>$<span id="modal-amount">49</span> USDT</strong> to the address above.</p>
+                </div>
+                <div class="pay-step">
+                    <span class="step-num">2</span>
+                    <p>Copy your <strong>Transaction Hash (TXID)</strong>.</p>
+                </div>
+                <div class="pay-step">
+                    <span class="step-num">3</span>
+                    <p>Message us on Telegram with your TXID and Machine ID to get your key.</p>
+                </div>
+            </div>
+            
+            <a href="https://t.me/GrootTradeSupport" target="_blank" class="btn btn-primary btn-full tg-btn">
+                <i class="fa-brands fa-telegram"></i> Message Support on Telegram
+            </a>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
